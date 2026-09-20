@@ -1,0 +1,10 @@
+node_modules
+dist
+dashboard
+data
+.git
+.github
+*.md
+.env
+.env.*
+!.env.example

@@ -1,0 +1,66 @@
+import type { TranslationKey } from './uz';
+
+/**
+ * English. Partial translation: missing keys fall back to Uzbek (uz.ts).
+ */
+export const en: Partial<Record<TranslationKey, string>> = {
+  "error.title": "Error",
+  "error.generic": "Something went wrong. Please try again later.",
+  "error.guildOnly": "This command only works in a server.",
+  "error.noPermission": "You don't have permission to use this command.",
+  "error.botMissingPermission": "I'm missing the required permission: **{permissions}**",
+  "error.hierarchy": "This member's role is higher than or equal to yours.",
+  "error.botHierarchy": "This member's role is higher than mine. Move my role up.",
+  "error.selfTarget": "You can't do that to yourself.",
+  "error.botTarget": "You can't do that to me.",
+  "error.ownerTarget": "You can't do that to the server owner.",
+  "error.memberNotFound": "That member isn't in this server.",
+  "error.userNotFound": "User not found. Double-check the ID.",
+  "error.invalidDuration": "Invalid duration. Examples: `10m`, `2h`, `7d`, `1w`.",
+  "error.cooldown": "Slow down. Try again in **{seconds}s**.",
+  "error.notBanned": "That user isn't banned.",
+  "error.notTimedOut": "That member isn't timed out.",
+  "error.caseNotFound": "Case #{case} not found.",
+
+  "common.reason": "Reason",
+  "common.noReason": "No reason given",
+  "common.moderator": "Moderator",
+  "common.user": "User",
+  "common.duration": "Duration",
+  "common.case": "Case",
+  "common.permanent": "Permanent",
+  "common.enabled": "enabled",
+  "common.disabled": "disabled",
+  "common.none": "none",
+  "common.channel": "Channel",
+  "common.role": "Role",
+  "common.server": "Server",
+
+  "mod.banned": "**{user}** has been banned. `Case #{case}`",
+  "mod.tempBanned": "**{user}** has been banned for {duration}. `Case #{case}`",
+  "mod.unbanned": "**{user}** has been unbanned. `Case #{case}`",
+  "mod.kicked": "**{user}** has been kicked. `Case #{case}`",
+  "mod.timedOut": "**{user}** has been timed out for {duration}. `Case #{case}`",
+  "mod.timeoutRemoved": "Timeout removed from **{user}**. `Case #{case}`",
+  "mod.warned": "**{user}** has been warned. Total warnings: **{count}**. `Case #{case}`",
+  "mod.purged": "Deleted **{count}** messages.",
+  "mod.locked": "{channel} has been locked.",
+  "mod.unlocked": "{channel} has been unlocked.",
+
+  "dm.ban": "You have been banned from **{guild}**.",
+  "dm.tempban": "You have been banned from **{guild}** for {duration}.",
+  "dm.kick": "You have been kicked from **{guild}**.",
+  "dm.timeout": "You have been timed out in **{guild}** for {duration}.",
+  "dm.warn": "You have been warned in **{guild}**.",
+  "dm.footer": "If you believe this is a mistake, contact the server moderators.",
+
+  "log.messageDeleted": "Message deleted",
+  "log.messageEdited": "Message edited",
+  "log.memberJoined": "Member joined",
+  "log.memberLeft": "Member left",
+  "log.banAdded": "Member banned",
+  "log.banRemoved": "Member unbanned",
+
+  "util.pong": "Pong!",
+  "util.helpTitle": "UzCord — commands",
+};

@@ -1,0 +1,13 @@
+services:
+  uzcord:
+    build: .
+    container_name: uzcord
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Ma'lumotlar Supabase'da — mahalliy volume kerak emas.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

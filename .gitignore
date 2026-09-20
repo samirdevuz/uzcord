@@ -1,0 +1,28 @@
+# Sirlar — HECH QACHON commit qilinmaydi
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build
+dist/
+.next/
+
+# V1 dan qolgan SQLite bazasi (Supabase'ga ko'chirilgandan keyin kerak emas)
+data/*.db
+data/*.db-shm
+data/*.db-wal
+
+# Tizim fayllari
+.DS_Store
+Thumbs.db
+*.log
+
+# Editor
+.vscode/
+.idea/
