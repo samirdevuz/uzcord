@@ -298,7 +298,7 @@ To'xtatish: **Ctrl + C**.
 | `npm start` | Build qilingan versiyani ishga tushiradi |
 | `npm run deploy` | Slash komandalarni Discord'ga yuklaydi |
 | `npm run typecheck` | Tip xatolarini tekshiradi |
-| `npm run migrate:sqlite` | V1 (SQLite) ma'lumotlarini Supabase'ga ko'chiradi |
+| `npm run migrate:sqlite` | V1 (SQLite) ma'lumotlarini ko'chiradi (avval `npm install --no-save better-sqlite3`) |
 
 ---
 
@@ -360,7 +360,10 @@ cp data/uzcord.db data/uzcord-v1-backup.db
 
 # 2) .env da SUPABASE_* qiymatlari to'ldirilganiga ishonch hosil qiling
 
-# 3) Ko'chiring
+# 3) better-sqlite3 ni vaqtincha o'rnating (loyihada u yo'q)
+npm install --no-save better-sqlite3
+
+# 4) Ko'chiring
 npm run migrate:sqlite
 ```
 
@@ -466,7 +469,37 @@ docker compose logs -f
 
 > V2 da mahalliy baza fayli yo'q — Docker volume kerak emas.
 
-### Variant C — Bepul hosting
+### Variant C — Pterodactyl panel (Node.js egg)
+
+Bu egg kodni **build qilmaydi**: faqat `git clone`, `npm install` va ishga tushirish.
+Shuning uchun `dist/` papkasi repoda **bo'lishi shart** (`.gitignore` da yo'q).
+
+```bash
+npm run build          # lokalda
+git add dist
+git commit -m "chore: build"
+git push
+```
+
+Panelda:
+
+| Maydon | Qiymat |
+|---|---|
+| Git Repo Address | `https://github.com/samirdevuz/uzcord` (oxirida `/` siz) |
+| Install Branch | `main` |
+| Main file | `dist/index.js` |
+| Additional Node packages / Arguments | bo'sh |
+
+Qo'shimcha:
+
+- `.env` faylini panelda **File Manager** orqali qo'lda yarating (u GitHub'da yo'q).
+- **Startup** bo'limida Docker Image ni **Node.js 22** (yoki 20) qiling. Juda yangi
+  Node versiyalari uchun ba'zi paketlar tayyor binar fayl chiqarmagan bo'ladi.
+- Ba'zi eggda ishga tushirish sharti xato yozilgan va `.js` faylni ham `ts-node --esm`
+  orqali ishga tushiradi. Loglarda `ts-node` ko'rinsa, hosting yordamiga yozing yoki
+  Startup Command tahrirlanadigan bo'lsa `node dist/index.js` ga o'zgartiring.
+
+### Variant D — Bepul hosting
 
 Ma'lumotlar Supabase'da bo'lgani uchun endi **fayl tizimi saqlanishi shart emas**.
 Bu bepul hostinglar bilan ishlashni ancha osonlashtiradi.

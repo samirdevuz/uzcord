@@ -1,4 +1,10 @@
-import { Collection, Events, MessageFlags, PermissionsBitField } from 'discord.js';
+import {
+  Collection,
+  Events,
+  MessageFlags,
+  PermissionsBitField,
+  type InteractionReplyOptions,
+} from 'discord.js';
 import { defineEvent, type CommandContext } from '../core/types';
 import { createLogger } from '../core/logger';
 import { defaultSettings, getSettings, isModuleEnabled } from '../db/guilds';
@@ -141,7 +147,7 @@ export default defineEvent(Events.InteractionCreate, async (client, interaction)
     await command.execute(interaction, ctx);
   } catch (error) {
     log.error(`/${interaction.commandName} xatolik berdi:`, error);
-    const payload = {
+    const payload: InteractionReplyOptions = {
       embeds: [errorEmbed(t('error.generic'), t('error.title'))],
       flags: MessageFlags.Ephemeral,
     };

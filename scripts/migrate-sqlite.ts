@@ -8,10 +8,14 @@
  *
  * Skript qayta-qayta ishlatilishi mumkin — mavjud yozuvlar yangilanadi,
  * takrorlanmaydi (upsert).
+ *
+ * MUHIM: better-sqlite3 loyiha bog'liqliklarida YO'Q (serverda kompilyatsiya
+ * qilish muammo tug'diradi). Ko'chirishdan oldin lokal kompyuteringizda:
+ *
+ *   npm install --no-save better-sqlite3
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import Database from 'better-sqlite3';
 import { supabase } from '../src/db/supabase';
 import { createLogger } from '../src/core/logger';
 
@@ -74,6 +78,18 @@ async function main(): Promise<void> {
   if (!fs.existsSync(sqlitePath)) {
     log.error(`SQLite fayli topilmadi: ${sqlitePath}`);
     log.info("Agar V1 ma'lumotlari kerak bo'lmasa, bu qadamni o'tkazib yuboring.");
+    process.exit(1);
+  }
+
+  type SqliteDb = {
+    prepare(sql: string): { all(): unknown[] };
+    close(): void;
+  };
+  let Database: new (file: string, options?: { readonly?: boolean }) => SqliteDb;
+  try {
+    Database = (await import('better-sqlite3')).default as never;
+  } catch {
+    log.error("better-sqlite3 o'rnatilmagan. Avval bajaring: npm install --no-save better-sqlite3");
     process.exit(1);
   }
 

@@ -4,6 +4,7 @@ import {
   type ChatInputCommandInteraction,
   type Guild,
   type GuildMember,
+  type InteractionReplyOptions,
   type User,
 } from 'discord.js';
 import { createLogger } from '../../core/logger';
@@ -45,10 +46,10 @@ export async function reply(
   embed: EmbedBuilder,
   ephemeral = false
 ): Promise<void> {
-  const payload = {
-    embeds: [embed],
-    ...(ephemeral ? { flags: MessageFlags.Ephemeral } : {}),
-  };
+  // Aniq tip berilmasa TypeScript MessageFlags.Ephemeral ni umumiy MessageFlags
+  // ga kengaytirib yuboradi va discord.js tiplariga mos kelmay qoladi.
+  const payload: InteractionReplyOptions = { embeds: [embed] };
+  if (ephemeral) payload.flags = MessageFlags.Ephemeral;
   if (interaction.deferred) {
     await interaction.editReply({ embeds: [embed] });
   } else if (interaction.replied) {

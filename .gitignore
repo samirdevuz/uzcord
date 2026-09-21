@@ -10,7 +10,8 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Build
-dist/
+# dist/ ATAYLAB commit qilinadi: Pterodactyl kabi hostinglar kodni build qila olmaydi.
+# Kodni o'zgartirsangiz: npm run build && git add dist
 .next/
 
 # V1 dan qolgan SQLite bazasi (Supabase'ga ko'chirilgandan keyin kerak emas)
