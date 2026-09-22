@@ -1,21 +1,12 @@
-import { randomBytes } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { authorizeUrl } from '@/lib/discord';
-import { env } from '@/lib/env';
+import { createOAuthState } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
 export function GET() {
-  // CSRF himoyasi: tasodifiy state cookie'ga yoziladi va callback'da solishtiriladi
-  const state = randomBytes(24).toString('base64url');
-
-  const response = NextResponse.redirect(authorizeUrl(state));
-  response.cookies.set('uzcord_oauth_state', state, {
-    httpOnly: true,
-    secure: env.appUrl.startsWith('https://'),
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 600, // 10 daqiqa
-  });
-  return response;
+  // `state` cookie'ga emas, imzolangan token sifatida URL ichida yuboriladi —
+  // shuning uchun brauzerning redirect-cookie blokirovkasiga ta'sir qilmaydi.
+  // Tafsilot: src/lib/session.ts dagi izoh.
+  return NextResponse.redirect(authorizeUrl(createOAuthState()));
 }
