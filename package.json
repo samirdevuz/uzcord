@@ -15,9 +15,11 @@
     "deploy": "tsx src/core/deploy.ts",
     "deploy:prod": "node dist/core/deploy.js",
     "migrate:sqlite": "tsx scripts/migrate-sqlite.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
+    "@discordjs/voice": "^0.18.0",
     "@supabase/supabase-js": "^2.45.4",
     "discord.js": "^14.16.3",
     "dotenv": "^16.4.5"
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@types/node": "^22.7.5",
     "tsx": "^4.19.1",
-    "typescript": "^5.6.3"
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
   }
 }
