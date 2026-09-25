@@ -16,6 +16,8 @@
     "deploy:prod": "node dist/core/deploy.js",
     "deploy:guild": "tsx src/core/deploy.ts --guild",
     "deploy:guild:prod": "node dist/core/deploy.js --guild",
+    "verify:commands": "tsx src/scripts/verifyCommands.ts",
+    "verify:commands:guild": "tsx src/scripts/verifyCommands.ts --guild",
     "migrate:sqlite": "tsx scripts/migrate-sqlite.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
