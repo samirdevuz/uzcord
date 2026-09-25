@@ -31,38 +31,39 @@ function loadModule(file) {
         return (imported.default ?? imported);
     }
     catch (error) {
-        log.error(`Fayl yuklanmadi: ${file}`, error);
+        log.error(`Fayl yuklanmadi (${node_path_1.default.basename(file)}):`, error);
         return null;
     }
 }
-/** src/commands ichidagi barcha komandalarni yuklaydi. */
+/** src/commands (yoki dist/commands) ichidagi barcha komandalarni yuklaydi. */
 function loadCommands(client) {
     const directory = node_path_1.default.join(__dirname, '..', 'commands');
     const commands = [];
     for (const file of walk(directory)) {
         const command = loadModule(file);
-        if (!command?.data || typeof command.execute !== 'function') {
-            log.warn(`Noto'g'ri komanda fayli: ${file}`);
+        if (!command || !command.data || typeof command.execute !== 'function') {
+            log.error(`Noto'g'ri komanda strukturasi faylda: ${node_path_1.default.basename(file)}`);
             continue;
         }
-        if (client.commands.has(command.data.name)) {
-            log.warn(`Takrorlangan komanda nomi: /${command.data.name}`);
+        const commandName = command.data.name;
+        if (client.commands.has(commandName)) {
+            log.error(`DUPLICATE COMMAND DETECTED: /${commandName} (${node_path_1.default.basename(file)} faylida). O'tkazib yuborildi.`);
             continue;
         }
-        client.commands.set(command.data.name, command);
+        client.commands.set(commandName, command);
         commands.push(command);
     }
-    log.info(`${commands.length} ta komanda yuklandi.`);
+    log.info(`${commands.length} ta komanda muvaffaqiyatli yuklandi.`);
     return commands;
 }
-/** src/events ichidagi barcha event handlerlarni ulaydi. */
+/** src/events (yoki dist/events) ichidagi barcha event handlerlarni ulaydi. */
 function loadEvents(client) {
     const directory = node_path_1.default.join(__dirname, '..', 'events');
     let count = 0;
     for (const file of walk(directory)) {
         const event = loadModule(file);
-        if (!event?.name || typeof event.execute !== 'function') {
-            log.warn(`Noto'g'ri event fayli: ${file}`);
+        if (!event || !event.name || typeof event.execute !== 'function') {
+            log.error(`Noto'g'ri event strukturasi faylda: ${node_path_1.default.basename(file)}`);
             continue;
         }
         const handler = (...args) => {
@@ -76,8 +77,6 @@ function loadEvents(client) {
                 log.error(`${String(event.name)} eventida xatolik:`, error);
             }
         };
-        // client.on() ning tiplari har bir event uchun alohida — bu yerda
-        // nomlar dinamik bo'lgani uchun umumiy emitter ko'rinishiga keltiramiz.
         const emitter = client;
         if (event.once)
             emitter.once(event.name, handler);
