@@ -8,12 +8,21 @@ import { getSession } from '@/lib/session';
 
 export const dynamic = 'force-dynamic';
 
+/** Kodlar api/auth/callback/route.ts dan keladi. */
 const ERRORS: Record<string, string> = {
   'bekor-qilindi': 'Kirish bekor qilindi.',
   'kod-yoq': 'Discord avtorizatsiya kodini qaytarmadi.',
   'state-mos-emas': 'Kirish havolasining muddati o‘tgan. Qaytadan urinib ko‘ring.',
-  'token-olinmadi': 'Discord bilan bog‘lanib bo‘lmadi.',
+  'discord-sozlama':
+    'Discord ilova kalitlari noto‘g‘ri: DISCORD_CLIENT_ID yoki DISCORD_CLIENT_SECRET mos emas (secret almashtirilgan bo‘lishi mumkin).',
+  'redirect-mos-emas':
+    'Redirect URI mos emas: NEXT_PUBLIC_APP_URL va Developer Portal → OAuth2 → Redirects dagi manzilni tekshiring.',
+  'kod-eskirgan': 'Kirish kodi eskirgan yoki allaqachon ishlatilgan. Qaytadan kiring.',
+  'discord-limit': 'Discord so‘rovlarni vaqtincha chekladi. Bir-ikki daqiqadan keyin qayta urinib ko‘ring.',
+  'discord-tarmoq': 'Serverdan Discord’ga ulanib bo‘lmadi. Birozdan keyin qayta urinib ko‘ring.',
+  'token-olinmadi': 'Discord kirishni rad etdi.',
   'foydalanuvchi-topilmadi': 'Discord profilingizni olib bo‘lmadi.',
+  'serverlar-olinmadi': 'Discord serverlaringiz ro‘yxatini olib bo‘lmadi. Qaytadan kiring.',
 };
 
 const STATS = [
@@ -215,9 +224,10 @@ function SectionHeading({ eyebrow, title, text }: { eyebrow: string; title: stri
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; holat?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, holat } = await searchParams;
+  const httpStatus = holat && /^\d{3}$/.test(holat) ? holat : null;
   const session = await getSession();
   const panelHref = session ? '/dashboard' : '/api/auth/login';
 
@@ -244,9 +254,12 @@ export default async function HomePage({
           <div className="mx-auto grid max-w-6xl items-center gap-14 px-5 pb-20 pt-14 sm:pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
             <div>
               {error ? (
-                <p className="mb-6 inline-flex items-center gap-2 rounded-lg border border-red-900/60 bg-red-950/50 px-3 py-2 text-sm text-red-300">
-                  <Icon className="h-4 w-4" name="alert" />
-                  {ERRORS[error] ?? `Kirishda muammo: ${error}`}
+                <p className="mb-6 flex max-w-xl items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/50 px-3 py-2 text-sm text-red-300">
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0" name="alert" />
+                  <span>
+                    {ERRORS[error] ?? `Kirishda muammo: ${error}`}
+                    {httpStatus ? <span className="text-red-400/70"> (HTTP {httpStatus})</span> : null}
+                  </span>
                 </p>
               ) : null}
 
