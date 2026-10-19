@@ -1,18 +1,13 @@
-import Link from 'next/link';
+import { LegalPage } from '@/components/site';
+import { getSession } from '@/lib/session';
 
 export const metadata = { title: 'Maxfiylik siyosati' };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const session = await getSession();
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
-      <Link className="text-sm text-slate-500 hover:text-slate-300" href="/">
-        ← Bosh sahifa
-      </Link>
-
-      <h1 className="mt-6 text-3xl font-bold text-white">Maxfiylik siyosati</h1>
-      <p className="mt-2 text-sm text-slate-500">Oxirgi yangilanish: 2026-yil 20-sentabr</p>
-
-      <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-300">
+    <LegalPage signedIn={Boolean(session)} title="Maxfiylik siyosati" updated="2026-yil 20-sentabr">
+      <div className="space-y-6 text-sm leading-relaxed text-slate-300">
         <section>
           <h2 className="mb-2 text-lg font-semibold text-white">1. Qanday ma‘lumot saqlanadi</h2>
           <p>
@@ -75,6 +70,6 @@ export default function PrivacyPage() {
           </p>
         </section>
       </div>
-    </main>
+    </LegalPage>
   );
 }

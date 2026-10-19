@@ -5,5 +5,3 @@ out/
 .env.*
 !.env.example
 *.tsbuildinfo
-.env.local
-.env.local.*

@@ -7,41 +7,95 @@
 }
 
 body {
-  @apply bg-ink-900 text-slate-200 antialiased;
+  @apply bg-ink-900 font-sans text-slate-300 antialiased;
+  font-feature-settings: 'ss01', 'cv11';
 }
 
-/* Formalar uchun umumiy uslublar */
-.input {
-  @apply w-full rounded-lg border border-ink-500 bg-ink-800 px-3 py-2 text-sm
-         text-slate-100 placeholder:text-slate-500
-         focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand;
+::selection {
+  @apply bg-brand/30 text-white;
 }
 
-.label {
-  @apply mb-1.5 block text-sm font-medium text-slate-300;
+@layer components {
+  /* ── Formalar ───────────────────────────────────────────────── */
+  .input {
+    @apply w-full rounded-lg border border-ink-500 bg-ink-950/60 px-3 py-2.5 text-sm
+           text-slate-100 shadow-inner shadow-black/20 transition-colors
+           placeholder:text-slate-600 hover:border-ink-400
+           focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/25;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[13px] font-medium text-slate-300;
+  }
+
+  .hint {
+    @apply mt-1.5 text-xs leading-relaxed text-slate-500;
+  }
+
+  /* ── Tugmalar ───────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium
+           transition-all duration-150 focus-visible:outline-none focus-visible:ring-2
+           focus-visible:ring-brand/50 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-900;
+  }
+
+  .btn-primary {
+    @apply btn bg-brand text-ink-950 shadow-[0_1px_0_0_rgb(255_255_255/0.25)_inset]
+           hover:bg-brand-light active:translate-y-px;
+  }
+
+  .btn-ghost {
+    @apply btn border border-ink-500 bg-ink-800/60 text-slate-200
+           hover:border-ink-400 hover:bg-ink-700 hover:text-white;
+  }
+
+  .btn-danger {
+    @apply btn border border-red-900/60 text-red-300 hover:border-red-800 hover:bg-red-950/40;
+  }
+
+  /* ── Kartalar ───────────────────────────────────────────────── */
+  .card {
+    @apply rounded-2xl border border-ink-600 bg-ink-800/70 p-5 shadow-card backdrop-blur-sm sm:p-6;
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.16em] text-brand-light;
+  }
 }
 
-.hint {
-  @apply mt-1 text-xs text-slate-500;
-}
+@layer utilities {
+  /*
+   * Brend belgisi: bayroqdagi kabi ko'k–oq–yashil polosalar, orasida ingichka qizil chiziqlar.
+   * Gorizontal (pastki chegara) va vertikal variantlari bor.
+   */
+  .tricolor {
+    background: linear-gradient(
+      90deg,
+      #14a9c9 0 32%,
+      #ce1126 32% 34%,
+      #e8edf2 34% 66%,
+      #ce1126 66% 68%,
+      #1eb53a 68% 100%
+    );
+  }
 
-.btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2
-         text-sm font-medium transition-colors;
-}
+  .tricolor-v {
+    background: linear-gradient(
+      180deg,
+      #14a9c9 0 32%,
+      #ce1126 32% 34%,
+      #e8edf2 34% 66%,
+      #ce1126 66% 68%,
+      #1eb53a 68% 100%
+    );
+  }
 
-.btn-primary {
-  @apply btn bg-brand text-ink-900 hover:bg-brand-light;
-}
+  /* O'zbek girih naqshi — sakkiz qirrali yulduz, juda past shaffoflikda. */
+  .pattern-girih {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56' viewBox='0 0 56 56'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1'%3E%3Crect x='16' y='16' width='24' height='24'/%3E%3Crect x='16' y='16' width='24' height='24' transform='rotate(45 28 28)'/%3E%3Ccircle cx='28' cy='28' r='5'/%3E%3Cpath d='M0 28h8M48 28h8M28 0v8M28 48v8'/%3E%3C/g%3E%3C/svg%3E");
+  }
 
-.btn-ghost {
-  @apply btn border border-ink-500 text-slate-300 hover:border-ink-400 hover:text-white;
-}
-
-.btn-danger {
-  @apply btn border border-red-900/60 text-red-400 hover:bg-red-950/40;
-}
-
-.card {
-  @apply rounded-xl border border-ink-600 bg-ink-800/60 p-5;
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-light via-white to-leaf-light bg-clip-text text-transparent;
+  }
 }

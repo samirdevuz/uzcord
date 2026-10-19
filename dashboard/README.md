@@ -1,6 +1,6 @@
 # UzCord Dashboard
 
-UzCord botining veb boshqaruv paneli. Next.js 15 (App Router) + Supabase.
+UzCord botining veb boshqaruv paneli. Next.js 16 (App Router) + Supabase.
 
 > Manzil: [uzcord.samirdev.uz](https://uzcord.samirdev.uz)
 
@@ -122,9 +122,16 @@ dashboard/
 │   │   ├── discord.ts            # OAuth + Discord API
 │   │   ├── guard.ts              # ruxsat tekshiruvi
 │   │   ├── supabase.ts           # service_role klienti
-│   │   └── actions.ts            # server actionlar (formalar)
-│   └── components/ui.tsx         # Card, Field, Toggle, ...
-└── tailwind.config.ts
+│   │   ├── actions.ts            # server actionlar (formalar)
+│   │   └── format.ts             # sana/muddat formati, standart qiymatlar
+│   └── components/
+│       ├── ui.tsx                # Card, Field, Toggle, Badge, Notice, ...
+│       ├── icons.tsx             # SVG ikonlar to'plami
+│       ├── brand.tsx             # Logo, bayroq polosasi (Tricolor)
+│       ├── site.tsx              # ommaviy sahifalar sarlavhasi va footeri
+│       └── nav.tsx               # bo'limlar menyusi (yagona client komponent)
+├── public/brand/                 # logo.png, flag.png
+└── tailwind.config.ts            # ranglar bayroqdan: brand (ko'k), leaf (yashil), flag.red
 ```
 
 ## Yangi sozlama sahifasi qo'shish
