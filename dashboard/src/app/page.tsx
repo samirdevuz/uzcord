@@ -17,7 +17,7 @@ const ERRORS: Record<string, string> = {
 };
 
 const STATS = [
-  { value: '21', label: 'slash komanda' },
+  { value: '33', label: 'slash komanda' },
   { value: '9', label: 'AutoMod qoidasi' },
   { value: '3', label: 'til: uz · ru · en' },
   { value: 'MIT', label: 'ochiq kod, bepul' },

@@ -26,43 +26,46 @@ function loadModule<T>(file: string): T | null {
     const imported = require(file) as { default?: T } & T;
     return (imported.default ?? imported) as T;
   } catch (error) {
-    log.error(`Fayl yuklanmadi: ${file}`, error);
+    log.error(`Fayl yuklanmadi (${path.basename(file)}):`, error);
     return null;
   }
 }
 
-/** src/commands ichidagi barcha komandalarni yuklaydi. */
+/** src/commands (yoki dist/commands) ichidagi barcha komandalarni yuklaydi. */
 export function loadCommands(client: UzCordClient): Command[] {
   const directory = path.join(__dirname, '..', 'commands');
   const commands: Command[] = [];
 
   for (const file of walk(directory)) {
     const command = loadModule<Command>(file);
-    if (!command?.data || typeof command.execute !== 'function') {
-      log.warn(`Noto'g'ri komanda fayli: ${file}`);
+    if (!command || !command.data || typeof command.execute !== 'function') {
+      log.error(`Noto'g'ri komanda strukturasi faylda: ${path.basename(file)}`);
       continue;
     }
-    if (client.commands.has(command.data.name)) {
-      log.warn(`Takrorlangan komanda nomi: /${command.data.name}`);
+
+    const commandName = command.data.name;
+    if (client.commands.has(commandName)) {
+      log.error(`DUPLICATE COMMAND DETECTED: /${commandName} (${path.basename(file)} faylida). O'tkazib yuborildi.`);
       continue;
     }
-    client.commands.set(command.data.name, command);
+
+    client.commands.set(commandName, command);
     commands.push(command);
   }
 
-  log.info(`${commands.length} ta komanda yuklandi.`);
+  log.info(`${commands.length} ta komanda muvaffaqiyatli yuklandi.`);
   return commands;
 }
 
-/** src/events ichidagi barcha event handlerlarni ulaydi. */
+/** src/events (yoki dist/events) ichidagi barcha event handlerlarni ulaydi. */
 export function loadEvents(client: UzCordClient): void {
   const directory = path.join(__dirname, '..', 'events');
   let count = 0;
 
   for (const file of walk(directory)) {
     const event = loadModule<BotEvent>(file);
-    if (!event?.name || typeof event.execute !== 'function') {
-      log.warn(`Noto'g'ri event fayli: ${file}`);
+    if (!event || !event.name || typeof event.execute !== 'function') {
+      log.error(`Noto'g'ri event strukturasi faylda: ${path.basename(file)}`);
       continue;
     }
 
@@ -79,8 +82,6 @@ export function loadEvents(client: UzCordClient): void {
       }
     };
 
-    // client.on() ning tiplari har bir event uchun alohida — bu yerda
-    // nomlar dinamik bo'lgani uchun umumiy emitter ko'rinishiga keltiramiz.
     const emitter = client as unknown as {
       on(name: string, listener: (...args: unknown[]) => void): void;
       once(name: string, listener: (...args: unknown[]) => void): void;
