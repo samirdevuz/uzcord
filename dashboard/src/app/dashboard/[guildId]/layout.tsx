@@ -6,7 +6,7 @@ import { Notice } from '@/components/ui';
 import { guildIconUrl } from '@/lib/discord';
 import { inviteUrl } from '@/lib/env';
 import { requireGuildAccess } from '@/lib/guard';
-import { db } from '@/lib/supabase';
+import { db, dbErrorMessage } from '@/lib/supabase';
 
 /** Yangi bo'lim qo'shganda shu ro'yxatga yozing. */
 const NAV: { path: string; label: string; icon: IconName }[] = [
@@ -28,11 +28,29 @@ export default async function GuildLayout({
   // Ruxsat yo'q bo'lsa /dashboard?error=access ga yo'naltiradi.
   const { guild } = await requireGuildAccess(guildId);
 
-  const { data: row } = await db
+  const { data: row, error } = await db
     .from('guilds')
     .select('bot_present')
     .eq('guild_id', guildId)
     .maybeSingle();
+
+  if (error) {
+    // Baza ishlamasa "bot bu serverda yo'q" deb noto'g'ri xulosa chiqarmaymiz.
+    return (
+      <main className="mx-auto max-w-lg px-5 py-16">
+        <Notice tone="error">{dbErrorMessage(error)}</Notice>
+        <div className="mt-6 flex justify-center gap-2">
+          <Link className="btn-ghost" href="/dashboard">
+            <Icon className="h-4 w-4" name="arrowLeft" />
+            Serverlar
+          </Link>
+          <Link className="btn-primary" href={`/dashboard/${guildId}`}>
+            Qayta urinish
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   const icon = guildIconUrl(guild.id, guild.icon, 96);
   const base = `/dashboard/${guildId}`;

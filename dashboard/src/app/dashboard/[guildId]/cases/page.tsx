@@ -4,7 +4,7 @@ import { Badge, Card, Empty, Notice, PageHeader, StatusBanner } from '@/componen
 import { deactivateCase } from '@/lib/actions';
 import { caseLabel, CASE_LABELS, CASE_TYPES, caseTone, formatDate, formatDuration, isCaseType } from '@/lib/format';
 import { requireGuildAccess } from '@/lib/guard';
-import { db } from '@/lib/supabase';
+import { db, dbErrorMessage } from '@/lib/supabase';
 
 export const metadata = { title: 'Moderatsiya tarixi' };
 
@@ -124,7 +124,7 @@ export default async function CasesPage({
 
       <Card icon="clipboard" title={`Case’lar (${total.toLocaleString('uz-UZ')})`}>
         {error ? (
-          <Notice tone="error">Ma‘lumot olib bo‘lmadi: {error.message}</Notice>
+          <Notice tone="error">{dbErrorMessage(error)}</Notice>
         ) : cases.length === 0 ? (
           <Empty icon="search">Hech narsa topilmadi.</Empty>
         ) : (

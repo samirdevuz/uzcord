@@ -4,7 +4,7 @@ import { Empty, Notice, PageHeader } from '@/components/ui';
 import { guildIconUrl } from '@/lib/discord';
 import { inviteUrl } from '@/lib/env';
 import { requireSession } from '@/lib/guard';
-import { db } from '@/lib/supabase';
+import { db, dbErrorMessage } from '@/lib/supabase';
 
 export const metadata = { title: 'Serverlar' };
 
@@ -35,7 +35,7 @@ export default async function ServersPage({
       .select('guild_id, member_count')
       .in('guild_id', ids)
       .eq('bot_present', true);
-    if (queryError) dbError = queryError.message;
+    if (queryError) dbError = dbErrorMessage(queryError);
     for (const row of data ?? []) present.set(row.guild_id as string, row.member_count as number | null);
   }
 
@@ -58,7 +58,7 @@ export default async function ServersPage({
             qaytadan kiring.
           </Notice>
         ) : null}
-        {dbError ? <Notice tone="error">Bazadan ma‘lumot olib bo‘lmadi: {dbError}</Notice> : null}
+        {dbError ? <Notice tone="error">{dbError}</Notice> : null}
       </div>
 
       <div className="mt-6">

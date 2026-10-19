@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { assertGuildAccess } from './guard';
-import { db } from './supabase';
+import { db, dbErrorMessage } from './supabase';
 
 /**
  * Barcha formalar oddiy HTML form sifatida yuboriladi — dashboard
@@ -89,7 +89,7 @@ export async function saveGeneralSettings(guildId: string, form: FormData): Prom
       .upsert({ guild_id: guildId, ...patch }, { onConflict: 'guild_id' });
 
     if (error) {
-      message = `Saqlanmadi: ${error.message}`;
+      message = `Saqlanmadi: ${dbErrorMessage(error)}`;
     } else {
       await audit(guildId, session.userId, session.username, 'settings.update', patch);
       revalidatePath(path);
@@ -131,7 +131,7 @@ export async function saveModules(guildId: string, form: FormData): Promise<void
       .upsert({ guild_id: guildId, modules }, { onConflict: 'guild_id' });
 
     if (error) {
-      message = error.message;
+      message = dbErrorMessage(error);
     } else {
       await audit(guildId, session.userId, session.username, 'modules.update', modules);
       revalidatePath(path);
@@ -186,7 +186,7 @@ export async function saveAutoModSettings(guildId: string, form: FormData): Prom
       .upsert({ guild_id: guildId, ...xpPatch }, { onConflict: 'guild_id' });
 
     if (error) {
-      message = `Saqlanmadi: ${error.message}`;
+      message = `Saqlanmadi: ${dbErrorMessage(error)}`;
     } else {
       await audit(guildId, session.userId, session.username, 'automod.update', xpPatch);
       revalidatePath(path);
@@ -216,7 +216,7 @@ export async function addFilteredWord(guildId: string, form: FormData): Promise<
       if (error) {
         message = error.message.includes('duplicate')
           ? "Bu so'z allaqachon ro'yxatda"
-          : error.message;
+          : dbErrorMessage(error);
       } else {
         await audit(guildId, session.userId, session.username, 'automod.word.add', { word: clean });
         revalidatePath(path);
@@ -247,7 +247,7 @@ export async function removeFilteredWord(guildId: string, form: FormData): Promi
       .eq('word', word);
 
     if (error) {
-      message = error.message;
+      message = dbErrorMessage(error);
     } else {
       await audit(guildId, session.userId, session.username, 'automod.word.remove', { word });
       revalidatePath(path);
@@ -282,7 +282,7 @@ export async function deactivateCase(guildId: string, form: FormData): Promise<v
         .eq('case_number', caseNumber);
 
       if (error) {
-        message = error.message;
+        message = dbErrorMessage(error);
       } else {
         await audit(guildId, session.userId, session.username, 'case.deactivate', { caseNumber });
         revalidatePath(path);
@@ -326,7 +326,7 @@ export async function saveLevelSettings(guildId: string, form: FormData): Promis
       .upsert({ guild_id: guildId, ...patch }, { onConflict: 'guild_id' });
 
     if (error) {
-      message = `Saqlanmadi: ${error.message}`;
+      message = `Saqlanmadi: ${dbErrorMessage(error)}`;
     } else {
       await audit(guildId, session.userId, session.username, 'leveling.update', patch);
       revalidatePath(path);
