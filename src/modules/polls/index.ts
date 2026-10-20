@@ -88,7 +88,7 @@ export function buildPollEmbed(
 
   const mode = poll.multi ? t('poll.modeMulti') : t('poll.modeSingle');
   return new EmbedBuilder()
-    .setColor(ended ? COLORS.neutral : 0x6366f1)
+    .setColor(ended ? COLORS.neutral : COLORS.indigo)
     .setTitle(`📊 ${poll.question}`)
     .setDescription(lines.join('\n\n').replace(/\n\n\n/g, '\n\n'))
     .setFooter({ text: `${t('poll.footer', { count: voters, mode })}${ended ? ` · ${t('poll.ended')}` : ''}` })

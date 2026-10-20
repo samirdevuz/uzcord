@@ -25,7 +25,7 @@ import type { Translator } from '../../i18n';
 const LOOP_LABEL_KEYS = { off: 'music.loopOff', track: 'music.loopTrack', queue: 'music.loopQueue' } as const;
 
 export default defineCommand({
-  category: 'utility',
+  category: 'music',
   cooldown: 2,
   botPermissions: [PermissionFlagsBits.Connect, PermissionFlagsBits.Speak],
   data: new SlashCommandBuilder()

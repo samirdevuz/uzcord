@@ -54,7 +54,7 @@ function buildPollEmbed(poll, votes, t, ended) {
     }
     const mode = poll.multi ? t('poll.modeMulti') : t('poll.modeSingle');
     return new discord_js_1.EmbedBuilder()
-        .setColor(ended ? embeds_1.COLORS.neutral : 0x6366f1)
+        .setColor(ended ? embeds_1.COLORS.neutral : embeds_1.COLORS.indigo)
         .setTitle(`📊 ${poll.question}`)
         .setDescription(lines.join('\n\n').replace(/\n\n\n/g, '\n\n'))
         .setFooter({ text: `${t('poll.footer', { count: voters, mode })}${ended ? ` · ${t('poll.ended')}` : ''}` })

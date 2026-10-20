@@ -16,7 +16,13 @@ UzCord botining veb boshqaruv paneli. Next.js 16 (App Router) + Supabase.
 | `/dashboard/[id]/settings` | Til, log kanallari, kutib olish, avtomatik rol |
 | `/dashboard/[id]/automod` | 9 ta AutoMod qoidasi, chegaralar, jazo, taqiqlangan so'zlar |
 | `/dashboard/[id]/cases` | Moderatsiya tarixi — filtr va sahifalash bilan |
-| `/dashboard/[id]/leveling` | Leveling sozlamalari va reyting |
+| `/dashboard/[id]/leveling` | Leveling sozlamalari, reyting, mukofot rollari |
+| `/dashboard/[id]/escalations` | Ogohlantirishlar soniga qarab avtomatik jazolar |
+| `/dashboard/[id]/tickets` | Murojaat tizimi sozlamalari, oxirgi murojaatlar, transcriptlar |
+| `/dashboard/[id]/starboard` | Starboard sozlamalari va eng ko‘p yulduz olganlar |
+| `/dashboard/[id]/events` | Konkurslar va so‘rovnomalar |
+
+Kanal va rollar ro‘yxatdan tanlanadi: bot har bir server tuzilmasini `guilds.channels` / `guilds.roles` ustunlariga sinxronlab turadi (migration `004_guild_structure`).
 
 ---
 

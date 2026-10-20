@@ -9,12 +9,31 @@ import { requireGuildAccess } from '@/lib/guard';
 import { db, dbErrorMessage } from '@/lib/supabase';
 
 /** Yangi bo'lim qo'shganda shu ro'yxatga yozing. */
-const NAV: { path: string; label: string; icon: IconName }[] = [
-  { path: '', label: 'Umumiy ko‘rinish', icon: 'grid' },
-  { path: '/settings', label: 'Sozlamalar', icon: 'sliders' },
-  { path: '/automod', label: 'AutoMod', icon: 'shieldCheck' },
-  { path: '/cases', label: 'Moderatsiya tarixi', icon: 'clipboard' },
-  { path: '/leveling', label: 'Leveling', icon: 'trending' },
+const NAV: { title: string | null; items: { path: string; label: string; icon: IconName }[] }[] = [
+  {
+    title: null,
+    items: [
+      { path: '', label: 'Umumiy ko‘rinish', icon: 'grid' },
+      { path: '/settings', label: 'Sozlamalar', icon: 'sliders' },
+    ],
+  },
+  {
+    title: 'Moderatsiya',
+    items: [
+      { path: '/automod', label: 'AutoMod', icon: 'shieldCheck' },
+      { path: '/escalations', label: 'Avtomatik jazolar', icon: 'zap' },
+      { path: '/cases', label: 'Moderatsiya tarixi', icon: 'clipboard' },
+    ],
+  },
+  {
+    title: 'Jamoa',
+    items: [
+      { path: '/leveling', label: 'Leveling', icon: 'trending' },
+      { path: '/tickets', label: 'Ticketlar', icon: 'ticket' },
+      { path: '/starboard', label: 'Starboard', icon: 'star' },
+      { path: '/events', label: 'Tadbirlar', icon: 'calendar' },
+    ],
+  },
 ];
 
 export default async function GuildLayout({
@@ -112,7 +131,13 @@ export default async function GuildLayout({
             </p>
           </div>
         </div>
-        <GuildNav items={NAV.map((item) => ({ href: `${base}${item.path}`, label: item.label, icon: item.icon }))} />
+        <GuildNav
+          base={base}
+          sections={NAV.map((section) => ({
+            title: section.title,
+            items: section.items.map((item) => ({ href: `${base}${item.path}`, label: item.label, icon: item.icon })),
+          }))}
+        />
       </aside>
 
       <main className="min-w-0 flex-1">

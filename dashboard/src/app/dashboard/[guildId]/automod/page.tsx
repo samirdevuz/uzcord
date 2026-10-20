@@ -1,8 +1,10 @@
 import { Icon } from '@/components/icons';
-import { Card, Empty, Field, PageHeader, SaveButton, Select, StatusBanner, Toggle } from '@/components/ui';
-import { addFilteredWord, removeFilteredWord, saveAutoModSettings } from '@/lib/actions';
+import { MultiPicker } from '@/components/pickers';
+import { Card, Empty, Field, PageHeader, SaveButton, Select, StatusBanner, TextArea, Toggle } from '@/components/ui';
+import { addFilteredWord, removeFilteredWord, saveAutoModLists, saveAutoModSettings } from '@/lib/actions';
 import { AUTOMOD_DEFAULTS, type AutoModRow } from '@/lib/format';
 import { requireGuildAccess } from '@/lib/guard';
+import { getGuildStructure, TEXT_TYPES } from '@/lib/structure';
 import { asList, db } from '@/lib/supabase';
 
 export const metadata = { title: 'AutoMod' };
@@ -19,26 +21,6 @@ const RULES: { name: keyof AutoModRow; label: string; hint: string }[] = [
   { name: 'anti_raid', label: 'Reyd himoyasi', hint: 'Ko‘p a‘zo birdan kirsa mod-logga ogohlantirish' },
 ];
 
-function IdList({ title, items, prefix }: { title: string; items: string[]; prefix?: string }) {
-  return (
-    <div>
-      <p className="label">{title}</p>
-      {items.length === 0 ? (
-        <p className="text-sm text-slate-500">—</p>
-      ) : (
-        <div className="flex flex-wrap gap-1.5">
-          {items.map((item) => (
-            <code key={item} className="rounded bg-ink-700 px-2 py-0.5 text-xs text-slate-300">
-              {prefix}
-              {item}
-            </code>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default async function AutoModPage({
   params,
   searchParams,
@@ -50,13 +32,14 @@ export default async function AutoModPage({
   const { status, msg } = await searchParams;
   await requireGuildAccess(guildId);
 
-  const [{ data: row }, { data: wordRows }] = await Promise.all([
+  const [{ data: row }, { data: wordRows }, structure] = await Promise.all([
     db.from('automod_settings').select('*').eq('guild_id', guildId).maybeSingle(),
     db
       .from('filtered_words')
       .select('word')
       .eq('guild_id', guildId)
       .order('word', { ascending: true }),
+    getGuildStructure(guildId),
   ]);
 
   const automod: AutoModRow = { ...AUTOMOD_DEFAULTS, ...((row ?? {}) as Partial<AutoModRow>) };
@@ -188,17 +171,39 @@ export default async function AutoModPage({
         </div>
       </Card>
 
-      <Card
-        description="Bular hozircha faqat Discord’dan o‘zgartiriladi: /automod ignore va /automod domain"
-        icon="lock"
-        title="Istisnolar"
-      >
-        <div className="space-y-4">
-          <IdList items={asList(automod.ignored_channels)} prefix="#" title="E‘tiborsiz kanallar" />
-          <IdList items={asList(automod.ignored_roles)} prefix="@" title="E‘tiborsiz rollar" />
-          <IdList items={asList(automod.allowed_domains)} title="Ruxsat etilgan domenlar" />
-        </div>
-      </Card>
+      <form action={saveAutoModLists.bind(null, guildId)}>
+        <Card
+          description="Bu kanallardagi va bu rollardagi a‘zolarning xabarlari AutoMod tomonidan tekshirilmaydi."
+          footer={<SaveButton />}
+          icon="lock"
+          title="Istisnolar"
+        >
+          <div className="space-y-5">
+            <MultiPicker
+              items={structure.channels.filter((channel) => TEXT_TYPES.includes(channel.type))}
+              kind="channel"
+              label="E‘tiborsiz kanallar"
+              name="ignored_channels"
+              selected={asList(automod.ignored_channels)}
+            />
+            <MultiPicker
+              hint="Xabarlarni boshqarish ruxsati borlar baribir ozod — bu yerda qo‘shimcha rollarni belgilang."
+              items={structure.roles}
+              kind="role"
+              label="E‘tiborsiz rollar"
+              name="ignored_roles"
+              selected={asList(automod.ignored_roles)}
+            />
+            <TextArea
+              defaultValue={asList(automod.allowed_domains).join('\n')}
+              hint="Har qatorda bitta domen (masalan youtube.com). Subdomenlar ham ruxsat etiladi. Faqat «Tashqi havolalar» qoidasi yoqilganda ishlaydi."
+              label="Ruxsat etilgan domenlar"
+              name="allowed_domains"
+              rows={4}
+            />
+          </div>
+        </Card>
+      </form>
     </div>
   );
 }

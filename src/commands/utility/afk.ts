@@ -3,7 +3,7 @@ import { defineCommand } from '../../core/types';
 import { setAfk } from '../../modules/afk';
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   cooldown: 10,
   data: new SlashCommandBuilder()
     .setName('afk')

@@ -5,9 +5,12 @@ const types_1 = require("../core/types");
 const logger_1 = require("../core/logger");
 const guilds_1 = require("../db/guilds");
 const scheduler_1 = require("../core/scheduler");
+const embeds_1 = require("../utils/embeds");
+const structure_1 = require("../modules/structure");
 const log = (0, logger_1.createLogger)('ready');
 exports.default = (0, types_1.defineEvent)(discord_js_1.Events.ClientReady, async (client) => {
     log.info(`${client.user?.tag} tizimga kirdi.`);
+    (0, embeds_1.setBrandIcon)(client.user?.displayAvatarURL({ size: 64 }));
     log.info(`Serverlar: ${client.guilds.cache.size} · Komandalar: ${client.commands.size}`);
     // Bot turgan har bir server uchun bazada yozuv borligiga ishonch hosil
     // qilamiz va dashboard uchun nom/ikonkani yangilaymiz.
@@ -17,6 +20,7 @@ exports.default = (0, types_1.defineEvent)(discord_js_1.Events.ClientReady, asyn
             icon: guild.iconURL({ size: 128 }),
             memberCount: guild.memberCount,
         }).catch(() => null);
+        await (0, structure_1.syncGuildStructure)(guild).catch(() => null);
     }
     client.user?.setPresence({
         status: 'online',

@@ -291,6 +291,18 @@ export function SaveButton({ children = 'Saqlash' }: { children?: ReactNode }) {
   );
 }
 
+/** Uzun formalar uchun ekran pastida doim ko'rinadigan saqlash paneli. */
+export function StickySave({ note = 'O‘zgarishlar botga 1 daqiqa ichida yetadi.' }: { note?: string }) {
+  return (
+    <div className="sticky bottom-4 z-30">
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-ink-500 bg-ink-800/90 px-5 py-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+        <p className="hidden text-xs text-slate-400 sm:block">{note}</p>
+        <SaveButton />
+      </div>
+    </div>
+  );
+}
+
 /** Rangli kichik yorliq (case turi va h.k.). */
 export function Badge({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (

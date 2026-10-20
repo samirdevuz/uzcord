@@ -7,7 +7,7 @@ const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
 const validation_1 = require("../../utils/validation");
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     data: new discord_js_1.SlashCommandBuilder()
         .setName('tag')
         .setDescription('Server taglari — tez-tez yuboriladigan matnlar')

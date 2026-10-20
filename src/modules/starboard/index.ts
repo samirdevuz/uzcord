@@ -16,7 +16,7 @@ import {
   type StarboardSettings,
 } from '../../db/starboard';
 import { createTranslator } from '../../i18n';
-import { truncate } from '../../utils/embeds';
+import { COLORS, truncate } from '../../utils/embeds';
 
 const log = createLogger('starboard');
 
@@ -52,7 +52,7 @@ export function starIcon(count: number): string {
 
 function buildStarEmbed(message: Message<true>, jumpLabel: string): EmbedBuilder {
   const embed = new EmbedBuilder()
-    .setColor(0xf5c518)
+    .setColor(COLORS.gold)
     .setAuthor({ name: message.member?.displayName ?? message.author.username, iconURL: message.author.displayAvatarURL() })
     .setTimestamp(message.createdAt)
     .setFooter({ text: message.id });

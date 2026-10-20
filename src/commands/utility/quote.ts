@@ -5,7 +5,7 @@ import { COLORS, errorEmbed, truncate } from '../../utils/embeds';
 import { parseMessageReference } from '../../utils/validation';
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   data: new SlashCommandBuilder()
     .setName('quote')
     .setDescription('Xabardan chiroyli iqtibos keltiradi')

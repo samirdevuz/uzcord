@@ -7,7 +7,7 @@ import { COLORS, errorEmbed } from '../../utils/embeds';
 import { xpProgress } from '../../utils/xp';
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   data: new SlashCommandBuilder()
     .setName('rank')
     .setDescription("Daraja, XP va reytingdagi o'rinni ko'rsatadi")

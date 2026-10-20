@@ -8,13 +8,13 @@ import {
 } from 'discord.js';
 import { defineCommand } from '../../core/types';
 import { reply } from '../../modules/moderation/actions';
-import { errorEmbed, successEmbed } from '../../utils/embeds';
+import { COLORS, errorEmbed, successEmbed } from '../../utils/embeds';
 
 /** Takliflar kanali nomi bo'yicha topiladi (masalan #takliflar yoki #suggestions). */
 const CHANNEL_HINTS = ['takliflar', 'taklif', 'suggestions', 'suggestion', 'предложения'];
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   cooldown: 60,
   data: new SlashCommandBuilder()
     .setName('suggest')
@@ -44,7 +44,7 @@ export default defineCommand({
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0xf59e0b)
+      .setColor(COLORS.warning)
       .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
       .setTitle(`💡 ${t('suggest.title')}`)
       .setDescription(text)

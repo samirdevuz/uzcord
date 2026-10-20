@@ -3,12 +3,12 @@ import { defineCommand } from '../../core/types';
 import { getLeaderboard, getMemberLevel, getMemberRank } from '../../db/leveling';
 import { isLevelingActive } from '../../modules/leveling';
 import { reply } from '../../modules/moderation/actions';
-import { errorEmbed } from '../../utils/embeds';
+import { COLORS, errorEmbed } from '../../utils/embeds';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   data: new SlashCommandBuilder()
     .setName('leaderboard')
     .setDescription("Eng faol a'zolar reytingi")
@@ -40,7 +40,7 @@ export default defineCommand({
     });
 
     const embed = new EmbedBuilder()
-      .setColor(0xf5c518)
+      .setColor(COLORS.gold)
       .setTitle(`🏆 ${t('level.leaderboardTitle', { guild: guild.name })}`)
       .setThumbnail(guild.iconURL({ size: 128 }))
       .setDescription(lines.join('\n'))

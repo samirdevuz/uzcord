@@ -6,7 +6,7 @@ import { COLORS, errorEmbed, successEmbed, truncate } from '../../utils/embeds';
 import { normalizeTagName } from '../../utils/validation';
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   data: new SlashCommandBuilder()
     .setName('tag')
     .setDescription('Server taglari — tez-tez yuboriladigan matnlar')

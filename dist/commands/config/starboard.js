@@ -79,7 +79,7 @@ exports.default = (0, types_1.defineCommand)({
             return;
         }
         const embed = new discord_js_1.EmbedBuilder()
-            .setColor(0xf5c518)
+            .setColor(embeds_1.COLORS.gold)
             .setTitle('⭐ Starboard')
             .addFields({ name: t('starboard.fieldEnabled'), value: settings.enabled ? '✅' : '❌', inline: true }, { name: t('starboard.fieldChannel'), value: settings.channel_id ? `<#${settings.channel_id}>` : '—', inline: true }, { name: t('starboard.fieldEmoji'), value: settings.emoji, inline: true }, { name: t('starboard.fieldThreshold'), value: String(settings.threshold), inline: true }, { name: t('starboard.fieldSelfStar'), value: settings.allow_self_star ? '✅' : '❌', inline: true }, {
             name: t('starboard.fieldIgnored'),

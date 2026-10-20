@@ -19,7 +19,7 @@ function messageIdFrom(input: string): string {
 }
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   botPermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks],
   data: new SlashCommandBuilder()
     .setName('giveaway')

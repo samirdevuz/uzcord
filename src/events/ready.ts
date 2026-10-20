@@ -3,6 +3,8 @@ import { defineEvent } from '../core/types';
 import { createLogger } from '../core/logger';
 import { ensureGuild } from '../db/guilds';
 import { startScheduler } from '../core/scheduler';
+import { setBrandIcon } from '../utils/embeds';
+import { syncGuildStructure } from '../modules/structure';
 
 const log = createLogger('ready');
 
@@ -10,6 +12,7 @@ export default defineEvent(
   Events.ClientReady,
   async (client) => {
     log.info(`${client.user?.tag} tizimga kirdi.`);
+    setBrandIcon(client.user?.displayAvatarURL({ size: 64 }));
     log.info(`Serverlar: ${client.guilds.cache.size} · Komandalar: ${client.commands.size}`);
 
     // Bot turgan har bir server uchun bazada yozuv borligiga ishonch hosil
@@ -20,6 +23,7 @@ export default defineEvent(
         icon: guild.iconURL({ size: 128 }),
         memberCount: guild.memberCount,
       }).catch(() => null);
+      await syncGuildStructure(guild).catch(() => null);
     }
 
     client.user?.setPresence({

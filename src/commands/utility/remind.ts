@@ -10,7 +10,7 @@ const MIN_DURATION = 30 * SECOND;
 const MAX_DURATION = 365 * 24 * 60 * 60 * 1000;
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   guildOnly: false,
   data: new SlashCommandBuilder()
     .setName('remind')

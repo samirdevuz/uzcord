@@ -7,6 +7,7 @@ import {
   type InteractionReplyOptions,
 } from 'discord.js';
 import { handleGiveawayButton } from '../modules/giveaways';
+import { handleHelpSelect } from '../modules/help';
 import { handlePollButton } from '../modules/polls';
 import { handleTicketButton } from '../modules/tickets';
 import { defineEvent, type CommandContext } from '../core/types';
@@ -38,6 +39,16 @@ export default defineEvent(Events.InteractionCreate, async (client, interaction)
     } catch (error) {
       log.warn(`/${interaction.commandName} autocomplete xatosi:`, error);
       await interaction.respond([]).catch(() => null);
+    }
+    return;
+  }
+
+  // ── Tanlash menyulari ─────────────────────────────────────────────────────
+  if (interaction.isStringSelectMenu()) {
+    try {
+      await handleHelpSelect(interaction);
+    } catch (error) {
+      log.warn(`Menyu xatosi (${interaction.customId}):`, error);
     }
     return;
   }

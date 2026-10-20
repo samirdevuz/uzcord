@@ -4,7 +4,7 @@ const discord_js_1 = require("discord.js");
 const types_1 = require("../../core/types");
 const afk_1 = require("../../modules/afk");
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     cooldown: 10,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('afk')

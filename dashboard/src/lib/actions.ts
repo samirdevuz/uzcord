@@ -53,6 +53,25 @@ function snowflake(form: FormData, key: string): string | null {
   return digits.length >= 15 && digits.length <= 21 ? digits : null;
 }
 
+/** Bir nechta checkbox (bir xil `name`) dan ID ro'yxati — takrorsiz, ko'pi bilan 100 ta. */
+function snowflakes(form: FormData, key: string): string[] {
+  const ids = form
+    .getAll(key)
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter((value) => /^\d{15,21}$/.test(value));
+  return [...new Set(ids)].slice(0, 100);
+}
+
+/** Har bir qatorda bitta domen; protokol va yo'l olib tashlanadi. */
+function domains(form: FormData, key: string): string[] {
+  const raw = typeof form.get(key) === 'string' ? (form.get(key) as string) : '';
+  const list = raw
+    .split(/[\s,]+/)
+    .map((item) => item.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0])
+    .filter((item) => /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(item));
+  return [...new Set(list)].slice(0, 100);
+}
+
 function back(path: string, ok: boolean, message: string): never {
   const status = ok ? 'ok' : 'err';
   redirect(`${path}?status=${status}&msg=${encodeURIComponent(message)}`);
@@ -319,6 +338,8 @@ export async function saveLevelSettings(guildId: string, form: FormData): Promis
         text(form, 'level_up_message') ??
         'Tabriklaymiz {user}, siz **{level}**-darajaga yetdingiz!',
       stack_rewards: bool(form, 'stack_rewards'),
+      ignored_channels: snowflakes(form, 'ignored_channels'),
+      no_xp_roles: snowflakes(form, 'no_xp_roles'),
     };
 
     const { error } = await db
@@ -338,4 +359,146 @@ export async function saveLevelSettings(guildId: string, form: FormData): Promis
   }
 
   back(path, ok, message);
+}
+
+// ── Umumiy yordamchi: bitta action shabloni ─────────────────────────────────
+
+/**
+ * Har bir action bir xil tartibda: ruxsat tekshiruvi → bazaga yozish →
+ * audit → sahifani yangilash → natija bilan qaytish.
+ */
+async function run(
+  guildId: string,
+  section: string,
+  auditAction: string,
+  work: (session: { userId: string; username: string }) => Promise<{ error: { message?: string } | null; message: string; details?: unknown }>
+): Promise<void> {
+  const path = `/dashboard/${guildId}${section}`;
+  let ok = false;
+  let message = 'Xatolik';
+  try {
+    const session = await assertGuildAccess(guildId);
+    const result = await work(session);
+    if (result.error) {
+      message = `Saqlanmadi: ${dbErrorMessage(result.error)}`;
+    } else {
+      await audit(guildId, session.userId, session.username, auditAction, result.details ?? null);
+      revalidatePath(path);
+      ok = true;
+      message = result.message;
+    }
+  } catch (error) {
+    message = error instanceof Error ? error.message : 'Xatolik';
+  }
+  back(path, ok, message);
+}
+
+// ── AutoMod istisnolari ─────────────────────────────────────────────────────
+
+export async function saveAutoModLists(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/automod', 'automod.lists', async () => {
+    const patch = {
+      ignored_channels: snowflakes(form, 'ignored_channels'),
+      ignored_roles: snowflakes(form, 'ignored_roles'),
+      allowed_domains: domains(form, 'allowed_domains'),
+    };
+    const { error } = await db.from('automod_settings').upsert({ guild_id: guildId, ...patch }, { onConflict: 'guild_id' });
+    return { error, message: 'Istisnolar saqlandi.', details: patch };
+  });
+}
+
+// ── Leveling mukofotlari ────────────────────────────────────────────────────
+
+export async function addLevelReward(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/leveling', 'leveling.reward.add', async () => {
+    const level = int(form, 'level', 0, 1, 500);
+    const roleId = snowflake(form, 'role_id');
+    if (!level || !roleId) return { error: { message: 'Daraja va rolni tanlang' }, message: '' };
+    const { error } = await db
+      .from('level_rewards')
+      .upsert({ guild_id: guildId, level, role_id: roleId }, { onConflict: 'guild_id,level' });
+    return { error, message: `${level}-daraja uchun mukofot saqlandi.`, details: { level, roleId } };
+  });
+}
+
+export async function removeLevelReward(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/leveling', 'leveling.reward.remove', async () => {
+    const level = int(form, 'level', 0, 1, 500);
+    const { error } = await db.from('level_rewards').delete().eq('guild_id', guildId).eq('level', level);
+    return { error, message: `${level}-daraja mukofoti olib tashlandi.`, details: { level } };
+  });
+}
+
+// ── Ticketlar ───────────────────────────────────────────────────────────────
+
+export async function saveTicketSettings(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/tickets', 'tickets.update', async () => {
+    const patch = {
+      enabled: bool(form, 'enabled'),
+      category_id: snowflake(form, 'category_id'),
+      transcript_channel_id: snowflake(form, 'transcript_channel_id'),
+      support_role_ids: snowflakes(form, 'support_role_ids'),
+      max_open_per_user: int(form, 'max_open_per_user', 1, 1, 5),
+      open_message:
+        text(form, 'open_message')?.slice(0, 1500) ??
+        'Salom {user}! Muammoingizni batafsil yozing, moderatorlar tez orada javob beradi.',
+      panel_title: text(form, 'panel_title')?.slice(0, 200) ?? 'Yordam kerakmi?',
+      panel_description:
+        text(form, 'panel_description')?.slice(0, 2000) ?? 'Quyidagi tugmani bosib moderatorlarga murojaat qiling.',
+    };
+    const { error } = await db.from('ticket_settings').upsert({ guild_id: guildId, ...patch }, { onConflict: 'guild_id' });
+    return {
+      error,
+      message: 'Murojaat sozlamalari saqlandi. Panelni Discord’da joylang: /ticket panel',
+      details: patch,
+    };
+  });
+}
+
+// ── Starboard ───────────────────────────────────────────────────────────────
+
+export async function saveStarboardSettings(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/starboard', 'starboard.update', async () => {
+    const channelId = snowflake(form, 'channel_id');
+    const enabled = bool(form, 'enabled');
+    if (enabled && !channelId) return { error: { message: 'Starboard kanalini tanlang' }, message: '' };
+    const patch = {
+      enabled,
+      channel_id: channelId,
+      emoji: text(form, 'emoji')?.slice(0, 64) ?? '⭐',
+      threshold: int(form, 'threshold', 3, 1, 100),
+      allow_self_star: bool(form, 'allow_self_star'),
+      ignored_channels: snowflakes(form, 'ignored_channels'),
+    };
+    const { error } = await db.from('starboard_settings').upsert({ guild_id: guildId, ...patch }, { onConflict: 'guild_id' });
+    return { error, message: 'Starboard sozlamalari saqlandi. Bot 1 daqiqa ichida yangilaydi.', details: patch };
+  });
+}
+
+// ── Avtomatik jazolar (eskalatsiya) ─────────────────────────────────────────
+
+export async function addEscalation(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/escalations', 'escalation.add', async () => {
+    const warnCount = int(form, 'warn_count', 0, 1, 50);
+    const actionValue = text(form, 'action') ?? '';
+    if (!warnCount || !['timeout', 'kick', 'ban'].includes(actionValue)) {
+      return { error: { message: 'Ogohlantirishlar soni va jazo turini tanlang' }, message: '' };
+    }
+    const minutes = int(form, 'duration_minutes', 0, 0, 525_600);
+    // Timeout uchun Discord chegarasi — 28 kun; ban uchun 0 = doimiy.
+    const durationMs =
+      actionValue === 'timeout' ? Math.min(Math.max(minutes, 1), 40_320) * 60_000 : actionValue === 'ban' && minutes > 0 ? minutes * 60_000 : null;
+    const { error } = await db
+      .from('escalations')
+      .upsert({ guild_id: guildId, warn_count: warnCount, action: actionValue, duration_ms: durationMs }, { onConflict: 'guild_id,warn_count' });
+    return { error, message: `${warnCount}-ogohlantirish uchun qoida saqlandi.`, details: { warnCount, actionValue, durationMs } };
+  });
+}
+
+export async function removeEscalation(guildId: string, form: FormData): Promise<void> {
+  await run(guildId, '/escalations', 'escalation.remove', async () => {
+    const warnCount = int(form, 'warn_count', 0, 1, 50);
+    const { error } = await db.from('escalations').delete().eq('guild_id', guildId).eq('warn_count', warnCount);
+    return { error, message: `${warnCount}-ogohlantirish qoidasi o‘chirildi.`, details: { warnCount } };
+  });
 }

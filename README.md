@@ -433,7 +433,7 @@ Vaqtinchalik ovozli kanallar: nomida `join-to-create` yoki `voice-yaratish` bo'l
 
 ### 🧰 Foydali
 
-`/ping` · `/help` · `/serverinfo` · `/userinfo` · `/avatar`
+`/help` (interaktiv menyu) · `/botinfo` · `/ping` · `/serverinfo` · `/userinfo` · `/avatar`
 
 ---
 

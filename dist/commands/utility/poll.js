@@ -9,7 +9,7 @@ const embeds_1 = require("../../utils/embeds");
 const time_1 = require("../../utils/time");
 const MAX_DURATION = 30 * time_1.DAY;
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     cooldown: 10,
     botPermissions: [discord_js_1.PermissionFlagsBits.SendMessages, discord_js_1.PermissionFlagsBits.EmbedLinks],
     data: new discord_js_1.SlashCommandBuilder()

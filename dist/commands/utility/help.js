@@ -2,20 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const types_1 = require("../../core/types");
+const help_1 = require("../../modules/help");
 const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
-const CATEGORY_ICONS = {
-    moderation: '🛡️',
-    config: '⚙️',
-    utility: '🧰',
-};
 exports.default = (0, types_1.defineCommand)({
     category: 'utility',
     guildOnly: false,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('help')
-        .setDescription("Barcha komandalar ro'yxatini ko'rsatadi")
-        .addStringOption((option) => option.setName('command').setDescription("Bitta komanda haqida batafsil")),
+        .setDescription("Komandalar bo'yicha qo'llanma")
+        .addStringOption((option) => option.setName('command').setDescription('Bitta komanda haqida batafsil').setAutocomplete(true)),
+    async autocomplete(interaction, ctx) {
+        const focused = interaction.options.getFocused().toLowerCase().replace(/^\//, '');
+        const names = [...ctx.client.commands.keys()].filter((name) => name.includes(focused)).sort().slice(0, 25);
+        await interaction.respond(names.map((name) => ({ name: `/${name}`, value: name })));
+    },
     async execute(interaction, ctx) {
         const { t, client } = ctx;
         const requested = interaction.options.getString('command')?.toLowerCase().replace(/^\//, '');
@@ -25,43 +26,10 @@ exports.default = (0, types_1.defineCommand)({
                 await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('util.helpNotFound')), true);
                 return;
             }
-            const json = command.data.toJSON();
-            const embed = (0, embeds_1.brandEmbed)(`/${json.name}`, json.description);
-            const options = json.options ?? [];
-            if (options.length > 0) {
-                embed.addFields({
-                    name: 'Parametrlar / sub-komandalar',
-                    value: (0, embeds_1.truncate)(options.map((option) => `\`${option.name}\` — ${option.description}`).join('\n'), 1000),
-                });
-            }
-            embed.addFields({
-                name: 'Kategoriya',
-                value: `${CATEGORY_ICONS[command.category]} ${command.category}`,
-                inline: true,
-            });
-            await (0, actions_1.reply)(interaction, embed, true);
+            await interaction.reply({ embeds: [(0, help_1.buildCommandDetail)(command, t)], flags: discord_js_1.MessageFlags.Ephemeral });
             return;
         }
-        const embed = (0, embeds_1.brandEmbed)(t('util.helpTitle'), t('util.helpDescription'));
-        const categories = ['moderation', 'config', 'utility'];
-        const labels = {
-            moderation: t('util.helpCategoryModeration'),
-            config: t('util.helpCategoryConfig'),
-            utility: t('util.helpCategoryUtility'),
-        };
-        for (const category of categories) {
-            const names = client.commands
-                .filter((command) => command.category === category)
-                .map((command) => `\`/${command.data.name}\``)
-                .sort();
-            if (names.length === 0)
-                continue;
-            embed.addFields({
-                name: `${CATEGORY_ICONS[category]} ${labels[category]} (${names.length})`,
-                value: (0, embeds_1.truncate)(names.join(' '), 1000),
-            });
-        }
-        await (0, actions_1.reply)(interaction, embed, true);
+        await interaction.reply({ ...(0, help_1.buildHelpHome)(client, t), flags: discord_js_1.MessageFlags.Ephemeral });
     },
 });
 //# sourceMappingURL=help.js.map

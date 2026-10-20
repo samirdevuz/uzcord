@@ -10,7 +10,7 @@ import type { UzCordClient } from './client';
 import type { GuildSettings } from '../db/guilds';
 import type { Translator } from '../i18n';
 
-export type CommandCategory = 'moderation' | 'config' | 'utility';
+export type CommandCategory = 'moderation' | 'config' | 'community' | 'music' | 'utility';
 
 export type AnySlashBuilder =
   | SlashCommandBuilder

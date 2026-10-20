@@ -8,7 +8,7 @@ const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
 const xp_1 = require("../../utils/xp");
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     data: new discord_js_1.SlashCommandBuilder()
         .setName('rank')
         .setDescription("Daraja, XP va reytingdagi o'rinni ko'rsatadi")

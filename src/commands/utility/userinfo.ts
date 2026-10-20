@@ -1,8 +1,23 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, SlashCommandBuilder, type UserFlagsString } from 'discord.js';
 import { defineCommand } from '../../core/types';
 import { countActiveWarnings } from '../../db/cases';
-import { reply } from '../../modules/moderation/actions';
 import { brandEmbed, truncate } from '../../utils/embeds';
+
+const BADGES: Partial<Record<UserFlagsString, string>> = {
+  Staff: '👨‍💼 Discord Staff',
+  Partner: '🤝 Partner',
+  Hypesquad: '🎪 HypeSquad Events',
+  HypeSquadOnlineHouse1: '🟣 Bravery',
+  HypeSquadOnlineHouse2: '🟠 Brilliance',
+  HypeSquadOnlineHouse3: '🟢 Balance',
+  BugHunterLevel1: '🐛 Bug Hunter',
+  BugHunterLevel2: '🐞 Bug Hunter Gold',
+  PremiumEarlySupporter: '💎 Early Supporter',
+  VerifiedDeveloper: '🧑‍💻 Verified Developer',
+  ActiveDeveloper: '⚙️ Active Developer',
+  CertifiedModerator: '🛡️ Moderator Alumni',
+  VerifiedBot: '✅ Verified Bot',
+};
 import { fullDate, relative } from '../../utils/time';
 
 export default defineCommand({
@@ -17,7 +32,9 @@ export default defineCommand({
 
   async execute(interaction, ctx) {
     const { t } = ctx;
-    const user = interaction.options.getUser('user') ?? interaction.user;
+    const target = interaction.options.getUser('user') ?? interaction.user;
+    // force: true — banner va nishonlar faqat to'liq profil so'ralganda keladi.
+    const user = await interaction.client.users.fetch(target.id, { force: true }).catch(() => target);
     const member = await interaction.guild!.members.fetch(user.id).catch(() => null);
 
     const embed = brandEmbed(t('util.userInfoTitle', { user: user.tag }))
@@ -25,8 +42,13 @@ export default defineCommand({
       .addFields(
         { name: 'ID', value: `\`${user.id}\``, inline: true },
         { name: t('util.bot'), value: user.bot ? '✅' : '❌', inline: true },
-        { name: t('util.createdAt'), value: fullDate(user.createdTimestamp), inline: true }
+        { name: t('util.createdAt'), value: `${fullDate(user.createdTimestamp)}\n${relative(user.createdTimestamp)}`, inline: true }
       );
+
+    const badges = (user.flags?.toArray() ?? []).map((flag) => BADGES[flag]).filter(Boolean);
+    if (badges.length > 0) embed.addFields({ name: t('util.badges'), value: badges.join('\n') });
+    if (user.bannerURL()) embed.setImage(user.bannerURL({ size: 1024 })!);
+    if (user.accentColor) embed.setColor(user.accentColor);
 
     if (member) {
       const roles = member.roles.cache
@@ -70,6 +92,12 @@ export default defineCommand({
       }
     }
 
-    await reply(interaction, embed);
+    const buttons = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(t('util.avatar')).setURL(user.displayAvatarURL({ size: 4096 }))
+    );
+    const banner = user.bannerURL({ size: 4096 });
+    if (banner) buttons.addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(t('util.banner')).setURL(banner));
+
+    await interaction.reply({ embeds: [embed], components: [buttons] });
   },
 });

@@ -1,17 +1,17 @@
-import { Card, Field, PageHeader, SaveButton, Select, StatusBanner, TextArea, Toggle } from '@/components/ui';
+import { ChannelSelect, RoleSelect } from '@/components/pickers';
+import { Card, PageHeader, Select, StatusBanner, StickySave, TextArea, Toggle } from '@/components/ui';
 import { saveGeneralSettings } from '@/lib/actions';
 import { requireGuildAccess } from '@/lib/guard';
+import { getGuildStructure } from '@/lib/structure';
 import { db } from '@/lib/supabase';
 
 export const metadata = { title: 'Sozlamalar' };
-
-const ID_HINT = "Discord'da Developer Mode ni yoqing, kanal ustida o'ng tugma → «Copy ID». Bo'sh = o'chiq.";
 
 const LOG_FIELDS = [
   { name: 'mod_log_channel_id', label: 'Moderatsiya logi', hint: 'Ban, kick, timeout, ogohlantirish va AutoMod' },
   { name: 'message_log_channel_id', label: 'Xabarlar logi', hint: "O'chirilgan va tahrirlangan xabarlar" },
   { name: 'member_log_channel_id', label: "A'zolar logi", hint: 'Kirish, chiqish, rol o‘zgarishlari, ban va unbanlar' },
-  { name: 'server_log_channel_id', label: 'Server logi', hint: 'Hozircha bot bu kanalga hech narsa yozmaydi' },
+  { name: 'server_log_channel_id', label: 'Server logi', hint: 'Kanal va rollar yaratilishi, o‘chirilishi' },
   { name: 'voice_log_channel_id', label: 'Ovozli kanallar logi', hint: 'Kirish, chiqish, kanal almashtirish' },
 ] as const;
 
@@ -29,8 +29,11 @@ export default async function SettingsPage({
   const { status, msg } = await searchParams;
   await requireGuildAccess(guildId);
 
-  const { data } = await db.from('guilds').select('*').eq('guild_id', guildId).maybeSingle();
-  const settings = (data ?? {}) as Record<string, string | boolean | null | undefined>;
+  const [{ data }, structure] = await Promise.all([
+    db.from('guilds').select('*').eq('guild_id', guildId).maybeSingle(),
+    getGuildStructure(guildId),
+  ]);
+  const settings = (data ?? {}) as Record<string, unknown>;
   const value = (key: string) => (settings[key] as string | null | undefined) ?? null;
 
   return (
@@ -62,54 +65,53 @@ export default async function SettingsPage({
         </div>
       </Card>
 
-      <Card description={ID_HINT} icon="list" title="Log kanallari">
+      <Card description="Tanlanmagan log yozilmaydi. Botda kanalga yozish va embed ruxsati bo‘lishi kerak." icon="list" title="Log kanallari">
         <div className="grid gap-4 sm:grid-cols-2">
           {LOG_FIELDS.map((field) => (
-            <Field
+            <ChannelSelect
               key={field.name}
+              channels={structure.channels}
               defaultValue={value(field.name)}
+              emptyLabel="— o‘chiq —"
               hint={field.hint}
               label={field.label}
               name={field.name}
-              placeholder="Kanal IDsi"
             />
           ))}
         </div>
       </Card>
 
-      <Card description={TEMPLATE_HINT} footer={<SaveButton />} icon="userPlus" title="Kutib olish">
-        <div className="space-y-4">
-          <Field
+      <Card description={TEMPLATE_HINT} icon="userPlus" title="Kutib olish">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ChannelSelect
+            channels={structure.channels}
             defaultValue={value('welcome_channel_id')}
+            emptyLabel="— o‘chiq —"
             label="Xush kelibsiz kanali"
             name="welcome_channel_id"
-            placeholder="Kanal IDsi"
           />
-          <TextArea
-            defaultValue={value('welcome_message')}
-            label="Xush kelibsiz xabari"
-            name="welcome_message"
-          />
-          <Field
+          <ChannelSelect
+            channels={structure.channels}
             defaultValue={value('goodbye_channel_id')}
+            emptyLabel="— o‘chiq —"
             label="Xayrlashuv kanali"
             name="goodbye_channel_id"
-            placeholder="Kanal IDsi"
           />
-          <TextArea
-            defaultValue={value('goodbye_message')}
-            label="Xayrlashuv xabari"
-            name="goodbye_message"
-          />
-          <Field
-            defaultValue={value('autorole_id')}
-            hint="Yangi a'zolarga avtomatik beriladi. Botning roli bu roldan yuqorida turishi kerak."
-            label="Avtomatik rol"
-            name="autorole_id"
-            placeholder="Rol IDsi"
-          />
+          <TextArea defaultValue={value('welcome_message')} label="Xush kelibsiz xabari" name="welcome_message" />
+          <TextArea defaultValue={value('goodbye_message')} label="Xayrlashuv xabari" name="goodbye_message" />
+          <div className="sm:col-span-2">
+            <RoleSelect
+              defaultValue={value('autorole_id')}
+              hint="Yangi a'zolarga avtomatik beriladi. Botning roli bu roldan yuqorida turishi kerak."
+              label="Avtomatik rol"
+              name="autorole_id"
+              roles={structure.roles}
+            />
+          </div>
         </div>
       </Card>
+
+      <StickySave />
     </form>
   );
 }

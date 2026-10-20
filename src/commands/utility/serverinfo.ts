@@ -2,7 +2,16 @@ import { ChannelType, SlashCommandBuilder } from 'discord.js';
 import { defineCommand } from '../../core/types';
 import { reply } from '../../modules/moderation/actions';
 import { brandEmbed } from '../../utils/embeds';
-import { fullDate } from '../../utils/time';
+import { fullDate, relative } from '../../utils/time';
+import type { TranslationKey } from '../../i18n';
+
+const VERIFICATION: Record<number, TranslationKey> = {
+  0: 'util.verifyNone',
+  1: 'util.verifyLow',
+  2: 'util.verifyMedium',
+  3: 'util.verifyHigh',
+  4: 'util.verifyHighest',
+};
 
 export default defineCommand({
   category: 'utility',
@@ -39,8 +48,11 @@ export default defineCommand({
           value: `${guild.premiumSubscriptionCount ?? 0} (Level ${guild.premiumTier})`,
           inline: true,
         },
-        { name: t('util.createdAt'), value: fullDate(guild.createdTimestamp), inline: true }
+        { name: t('util.createdAt'), value: `${fullDate(guild.createdTimestamp)}\n${relative(guild.createdTimestamp)}`, inline: true },
+        { name: t('util.verification'), value: t(VERIFICATION[guild.verificationLevel] ?? 'util.verifyNone'), inline: true }
       );
+
+    if (guild.description) embed.setDescription(guild.description);
 
     if (guild.bannerURL()) embed.setImage(guild.bannerURL({ size: 1024 }));
 

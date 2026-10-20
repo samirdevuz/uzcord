@@ -65,7 +65,7 @@ export function buildGiveawayEmbed(
   }
 
   return new EmbedBuilder()
-    .setColor(state.ended ? COLORS.neutral : 0xec4899)
+    .setColor(state.ended ? COLORS.neutral : COLORS.pink)
     .setTitle(`🎉 ${giveaway.prize}`)
     .setDescription(lines.join('\n'))
     .setFooter({ text: state.ended ? t('giveaway.footerEnded') : t('giveaway.footerActive') })

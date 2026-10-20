@@ -41,6 +41,10 @@ export const config = {
   /** Issiq keshni qayta yuklash oralig'i (ms). Dashboard o'zgarishi shuncha vaqtda yetadi. */
   cacheRefreshMs: number('CACHE_REFRESH_MS', 60_000),
 
+  /** /help va /botinfo dagi havola tugmalari uchun. */
+  dashboardUrl: optional('DASHBOARD_URL', 'https://uzcord.samirdev.uz'),
+  supportUrl: optional('SUPPORT_URL', 'https://discord.gg/JGfWtj3ydt'),
+
   defaultLocale: optional('DEFAULT_LOCALE', 'uz'),
   logLevel: optional('LOG_LEVEL', 'info') as 'debug' | 'info' | 'warn' | 'error',
 } as const;

@@ -16,7 +16,37 @@ const AUDIT_LABELS: Record<string, string> = {
   'automod.word.remove': 'taqiqlangan so‘zni o‘chirdi',
   'case.deactivate': 'ogohlantirishni bekor qildi',
   'leveling.update': 'leveling sozlamalarini o‘zgartirdi',
+  'leveling.reward.add': 'daraja mukofotini qo‘shdi',
+  'leveling.reward.remove': 'daraja mukofotini o‘chirdi',
+  'automod.lists': 'AutoMod istisnolarini o‘zgartirdi',
+  'tickets.update': 'ticket sozlamalarini o‘zgartirdi',
+  'starboard.update': 'starboard sozlamalarini o‘zgartirdi',
+  'escalation.add': 'avtomatik jazo qoidasini qo‘shdi',
+  'escalation.remove': 'avtomatik jazo qoidasini o‘chirdi',
 };
+
+/** Sozlash holati ro'yxatining bitta bandi. */
+function SetupItem({ done, label, hint, href }: { done: boolean; label: string; hint: string; href: string }) {
+  return (
+    <Link
+      className="group flex items-start gap-3 rounded-xl border border-ink-600 bg-ink-900/40 px-4 py-3 transition-colors hover:border-ink-500"
+      href={href}
+    >
+      <span
+        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+          done ? 'border-leaf/40 bg-leaf/15 text-leaf-light' : 'border-ink-400 text-transparent'
+        }`}
+      >
+        <Icon className="h-3 w-3" name="check" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-sm font-medium ${done ? 'text-slate-400 line-through decoration-slate-600' : 'text-white'}`}>{label}</span>
+        <span className="block text-xs text-slate-500">{hint}</span>
+      </span>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-slate-600 transition-colors group-hover:text-slate-300" name="arrowRight" />
+    </Link>
+  );
+}
 
 async function count(table: string, apply: (query: any) => any): Promise<number> {
   const { count: total } = await apply(db.from(table).select('*', { count: 'exact', head: true }));
@@ -36,8 +66,13 @@ export default async function OverviewPage({
 
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [guildRow, totalCases, weekCases, activeWarns, words, recent, audit] = await Promise.all([
-    db.from('guilds').select('member_count, modules').eq('guild_id', guildId).maybeSingle(),
+  const [guildRow, totalCases, weekCases, activeWarns, words, recent, audit, automodRow, levelRow, ticketRow, starRow, escalations] =
+    await Promise.all([
+    db
+      .from('guilds')
+      .select('member_count, modules, mod_log_channel_id, welcome_channel_id')
+      .eq('guild_id', guildId)
+      .maybeSingle(),
     count('mod_cases', (q) => q.eq('guild_id', guildId)),
     count('mod_cases', (q) => q.eq('guild_id', guildId).gte('created_at', weekAgo)),
     count('mod_cases', (q) => q.eq('guild_id', guildId).eq('type', 'warn').eq('active', true)),
@@ -54,10 +89,31 @@ export default async function OverviewPage({
       .eq('guild_id', guildId)
       .order('created_at', { ascending: false })
       .limit(6),
+    db.from('automod_settings').select('enabled').eq('guild_id', guildId).maybeSingle(),
+    db.from('level_settings').select('enabled').eq('guild_id', guildId).maybeSingle(),
+    db.from('ticket_settings').select('enabled, panel_message_id').eq('guild_id', guildId).maybeSingle(),
+    db.from('starboard_settings').select('enabled').eq('guild_id', guildId).maybeSingle(),
+    count('escalations', (q) => q.eq('guild_id', guildId)),
   ]);
 
   const modules = guildRow.data?.modules;
   const memberCount = guildRow.data?.member_count as number | null | undefined;
+  const base = `/dashboard/${guildId}`;
+  const setup = [
+    { done: Boolean(guildRow.data?.mod_log_channel_id), label: 'Moderatsiya logi', hint: 'Jazolar qayd etiladigan kanal', href: `${base}/settings` },
+    { done: automodRow.data?.enabled === true, label: 'AutoMod', hint: 'Spam va reklamadan avtomatik himoya', href: `${base}/automod` },
+    { done: escalations > 0, label: 'Avtomatik jazolar', hint: 'Masalan: 3-ogohlantirishda timeout', href: `${base}/escalations` },
+    { done: Boolean(guildRow.data?.welcome_channel_id), label: 'Kutib olish', hint: 'Yangi a‘zolarga xush kelibsiz xabari', href: `${base}/settings` },
+    { done: levelRow.data?.enabled === true, label: 'Leveling', hint: 'Faollik uchun XP va mukofot rollari', href: `${base}/leveling` },
+    {
+      done: Boolean(ticketRow.data?.enabled && ticketRow.data?.panel_message_id),
+      label: 'Ticketlar',
+      hint: 'Murojaat paneli joylangan',
+      href: `${base}/tickets`,
+    },
+    { done: starRow.data?.enabled === true, label: 'Starboard', hint: 'Eng yaxshi xabarlar kanali', href: `${base}/starboard` },
+  ];
+  const doneCount = setup.filter((item) => item.done).length;
 
   return (
     <div className="space-y-6">
@@ -70,6 +126,27 @@ export default async function OverviewPage({
         <Stat icon="alert" label="Faol ogohlantirish" value={activeWarns} />
         <Stat icon="type" label="Taqiqlangan so‘z" value={words} />
       </div>
+
+      {doneCount < setup.length ? (
+        <Card
+          aside={<span className="shrink-0 text-sm tabular-nums text-slate-400">{doneCount} / {setup.length}</span>}
+          description="Serverni to‘liq himoyalash va jonlantirish uchun qolgan qadamlar."
+          icon="sparkles"
+          title="Sozlash holati"
+        >
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-ink-600">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-brand to-leaf"
+              style={{ width: `${Math.round((doneCount / setup.length) * 100)}%` }}
+            />
+          </div>
+          <div className="grid gap-2 md:grid-cols-2">
+            {setup.map((item) => (
+              <SetupItem key={item.label} {...item} />
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       <form action={saveModules.bind(null, guildId)}>
         <Card

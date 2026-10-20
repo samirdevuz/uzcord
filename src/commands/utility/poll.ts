@@ -9,7 +9,7 @@ import { DAY, MINUTE, parseDuration } from '../../utils/time';
 const MAX_DURATION = 30 * DAY;
 
 export default defineCommand({
-  category: 'utility',
+  category: 'community',
   cooldown: 10,
   botPermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks],
   data: new SlashCommandBuilder()

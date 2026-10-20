@@ -7,7 +7,7 @@ const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
 const LOOP_LABEL_KEYS = { off: 'music.loopOff', track: 'music.loopTrack', queue: 'music.loopQueue' };
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'music',
     cooldown: 2,
     botPermissions: [discord_js_1.PermissionFlagsBits.Connect, discord_js_1.PermissionFlagsBits.Speak],
     data: new discord_js_1.SlashCommandBuilder()

@@ -45,7 +45,7 @@ function buildGiveawayEmbed(giveaway, t, state) {
         lines.push(`**${t('giveaway.ends')}:** <t:${unix(giveaway.ends_at)}:R> (<t:${unix(giveaway.ends_at)}:f>)`);
     }
     return new discord_js_1.EmbedBuilder()
-        .setColor(state.ended ? embeds_1.COLORS.neutral : 0xec4899)
+        .setColor(state.ended ? embeds_1.COLORS.neutral : embeds_1.COLORS.pink)
         .setTitle(`🎉 ${giveaway.prize}`)
         .setDescription(lines.join('\n'))
         .setFooter({ text: state.ended ? t('giveaway.footerEnded') : t('giveaway.footerActive') })

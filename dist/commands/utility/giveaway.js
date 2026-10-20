@@ -13,7 +13,7 @@ function messageIdFrom(input) {
     return input.trim().split('/').pop().replace(/\D/g, '');
 }
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     botPermissions: [discord_js_1.PermissionFlagsBits.SendMessages, discord_js_1.PermissionFlagsBits.EmbedLinks],
     data: new discord_js_1.SlashCommandBuilder()
         .setName('giveaway')

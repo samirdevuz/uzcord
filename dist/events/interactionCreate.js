@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const giveaways_1 = require("../modules/giveaways");
+const help_1 = require("../modules/help");
 const polls_1 = require("../modules/polls");
 const tickets_1 = require("../modules/tickets");
 const types_1 = require("../core/types");
@@ -32,6 +33,16 @@ exports.default = (0, types_1.defineEvent)(discord_js_1.Events.InteractionCreate
         catch (error) {
             log.warn(`/${interaction.commandName} autocomplete xatosi:`, error);
             await interaction.respond([]).catch(() => null);
+        }
+        return;
+    }
+    // ── Tanlash menyulari ─────────────────────────────────────────────────────
+    if (interaction.isStringSelectMenu()) {
+        try {
+            await (0, help_1.handleHelpSelect)(interaction);
+        }
+        catch (error) {
+            log.warn(`Menyu xatosi (${interaction.customId}):`, error);
         }
         return;
     }

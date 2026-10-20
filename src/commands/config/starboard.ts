@@ -3,7 +3,7 @@ import { defineCommand } from '../../core/types';
 import { getStarboardSettings, updateStarboardSettings } from '../../db/starboard';
 import { invalidateStarboardSettings } from '../../modules/starboard';
 import { reply } from '../../modules/moderation/actions';
-import { errorEmbed, successEmbed } from '../../utils/embeds';
+import { COLORS, errorEmbed, successEmbed } from '../../utils/embeds';
 
 export default defineCommand({
   category: 'config',
@@ -96,7 +96,7 @@ export default defineCommand({
     }
 
     const embed = new EmbedBuilder()
-      .setColor(0xf5c518)
+      .setColor(COLORS.gold)
       .setTitle('⭐ Starboard')
       .addFields(
         { name: t('starboard.fieldEnabled'), value: settings.enabled ? '✅' : '❌', inline: true },

@@ -10,7 +10,7 @@ const MAX_ACTIVE = 25;
 const MIN_DURATION = 30 * time_1.SECOND;
 const MAX_DURATION = 365 * 24 * 60 * 60 * 1000;
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     guildOnly: false,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('remind')

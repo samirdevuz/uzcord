@@ -4,6 +4,7 @@ const discord_js_1 = require("discord.js");
 const types_1 = require("../core/types");
 const logger_1 = require("../core/logger");
 const guilds_1 = require("../db/guilds");
+const structure_1 = require("../modules/structure");
 const log = (0, logger_1.createLogger)('guild');
 exports.default = (0, types_1.defineEvent)(discord_js_1.Events.GuildCreate, async (client, guild) => {
     await (0, guilds_1.ensureGuild)(guild.id, {
@@ -11,6 +12,7 @@ exports.default = (0, types_1.defineEvent)(discord_js_1.Events.GuildCreate, asyn
         icon: guild.iconURL({ size: 128 }),
         memberCount: guild.memberCount,
     });
+    await (0, structure_1.syncGuildStructure)(guild);
     log.info(`Yangi serverga qo'shildim: ${guild.name} (${guild.id}) — ${guild.memberCount} a'zo`);
     log.info(`Jami serverlar: ${client.guilds.cache.size}`);
 });

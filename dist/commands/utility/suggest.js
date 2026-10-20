@@ -7,7 +7,7 @@ const embeds_1 = require("../../utils/embeds");
 /** Takliflar kanali nomi bo'yicha topiladi (masalan #takliflar yoki #suggestions). */
 const CHANNEL_HINTS = ['takliflar', 'taklif', 'suggestions', 'suggestion', 'предложения'];
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     cooldown: 60,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('suggest')
@@ -31,7 +31,7 @@ exports.default = (0, types_1.defineCommand)({
             return;
         }
         const embed = new discord_js_1.EmbedBuilder()
-            .setColor(0xf59e0b)
+            .setColor(embeds_1.COLORS.warning)
             .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
             .setTitle(`💡 ${t('suggest.title')}`)
             .setDescription(text)

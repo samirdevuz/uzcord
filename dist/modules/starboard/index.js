@@ -44,7 +44,7 @@ function starIcon(count) {
 }
 function buildStarEmbed(message, jumpLabel) {
     const embed = new discord_js_1.EmbedBuilder()
-        .setColor(0xf5c518)
+        .setColor(embeds_1.COLORS.gold)
         .setAuthor({ name: message.member?.displayName ?? message.author.username, iconURL: message.author.displayAvatarURL() })
         .setTimestamp(message.createdAt)
         .setFooter({ text: message.id });

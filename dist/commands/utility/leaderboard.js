@@ -8,7 +8,7 @@ const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
 const MEDALS = ['🥇', '🥈', '🥉'];
 exports.default = (0, types_1.defineCommand)({
-    category: 'utility',
+    category: 'community',
     data: new discord_js_1.SlashCommandBuilder()
         .setName('leaderboard')
         .setDescription("Eng faol a'zolar reytingi")
@@ -35,7 +35,7 @@ exports.default = (0, types_1.defineCommand)({
             return `${badge} <@${row.user_id}> — **${row.level}**-daraja · ${Number(row.xp).toLocaleString('uz-UZ')} XP`;
         });
         const embed = new discord_js_1.EmbedBuilder()
-            .setColor(0xf5c518)
+            .setColor(embeds_1.COLORS.gold)
             .setTitle(`🏆 ${t('level.leaderboardTitle', { guild: guild.name })}`)
             .setThumbnail(guild.iconURL({ size: 128 }))
             .setDescription(lines.join('\n'))

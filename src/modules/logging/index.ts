@@ -1,12 +1,14 @@
 import {
   ChannelType,
+  EmbedBuilder,
   PermissionFlagsBits,
-  type EmbedBuilder,
   type Guild,
   type TextChannel,
 } from 'discord.js';
 import { createLogger } from '../../core/logger';
 import { getSettings, isModuleEnabled, LOG_COLUMNS, type LogKind } from '../../db/guilds';
+import { createTranslator } from '../../i18n';
+import { COLORS } from '../../utils/embeds';
 
 const log = createLogger('logging');
 
@@ -45,4 +47,23 @@ export async function sendLog(
   } catch (error) {
     log.warn(`Log yuborilmadi (${guild.id}/${kind}):`, error);
   }
+}
+
+/** Kanal/rol yaratilishi va o'chirilishi — "server" log kanaliga. */
+export async function logStructureChange(
+  guild: Guild,
+  key: 'log.channelCreated' | 'log.channelDeleted' | 'log.roleCreated' | 'log.roleDeleted',
+  target: { id: string; name: string; mention?: string }
+): Promise<void> {
+  const t = createTranslator(getSettings(guild.id).locale);
+  const created = key.endsWith('Created');
+  const embed = new EmbedBuilder()
+    .setColor(created ? COLORS.success : COLORS.danger)
+    .setTitle(`${created ? '➕' : '➖'} ${t(key)}`)
+    .addFields(
+      { name: t('log.name'), value: target.mention && created ? `${target.mention} (${target.name})` : target.name, inline: true },
+      { name: 'ID', value: `\`${target.id}\``, inline: true }
+    )
+    .setTimestamp();
+  await sendLog(guild, 'server', embed);
 }

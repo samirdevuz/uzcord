@@ -5,6 +5,13 @@ const types_1 = require("../../core/types");
 const actions_1 = require("../../modules/moderation/actions");
 const embeds_1 = require("../../utils/embeds");
 const time_1 = require("../../utils/time");
+const VERIFICATION = {
+    0: 'util.verifyNone',
+    1: 'util.verifyLow',
+    2: 'util.verifyMedium',
+    3: 'util.verifyHigh',
+    4: 'util.verifyHighest',
+};
 exports.default = (0, types_1.defineCommand)({
     category: 'utility',
     data: new discord_js_1.SlashCommandBuilder()
@@ -29,7 +36,9 @@ exports.default = (0, types_1.defineCommand)({
             name: t('util.boosts'),
             value: `${guild.premiumSubscriptionCount ?? 0} (Level ${guild.premiumTier})`,
             inline: true,
-        }, { name: t('util.createdAt'), value: (0, time_1.fullDate)(guild.createdTimestamp), inline: true });
+        }, { name: t('util.createdAt'), value: `${(0, time_1.fullDate)(guild.createdTimestamp)}\n${(0, time_1.relative)(guild.createdTimestamp)}`, inline: true }, { name: t('util.verification'), value: t(VERIFICATION[guild.verificationLevel] ?? 'util.verifyNone'), inline: true });
+        if (guild.description)
+            embed.setDescription(guild.description);
         if (guild.bannerURL())
             embed.setImage(guild.bannerURL({ size: 1024 }));
         await (0, actions_1.reply)(interaction, embed);
