@@ -110,9 +110,9 @@ export const MODULES: { name: string; label: string; hint: string; available: bo
   { name: 'logging', label: 'Loglar', hint: 'Xabar, a‘zo, ban va ovozli kanal loglari', available: true },
   { name: 'welcome', label: 'Kutib olish', hint: 'Xush kelibsiz / xayrlashuv xabarlari, avtomatik rol', available: true },
   { name: 'roles', label: 'Tugmali rollar', hint: '/buttonrole panellari', available: true },
-  { name: 'leveling', label: 'Leveling', hint: 'Tez kunda — hali botda ishlamaydi', available: false },
-  { name: 'tickets', label: 'Ticketlar', hint: 'Tez kunda — hali botda ishlamaydi', available: false },
-  { name: 'starboard', label: 'Starboard', hint: 'Tez kunda — hali botda ishlamaydi', available: false },
+  { name: 'leveling', label: 'Leveling', hint: 'Xabarlar uchun XP, darajalar, mukofot rollari', available: true },
+  { name: 'tickets', label: 'Ticketlar', hint: '/ticket — murojaat kanallari va transcriptlar', available: true },
+  { name: 'starboard', label: 'Starboard', hint: '/starboard — eng ko‘p reaksiya olgan xabarlar', available: true },
 ];
 
 /** Bot bilan bir xil qoida: modul faqat aniq `false` bo'lsa o'chiq. */

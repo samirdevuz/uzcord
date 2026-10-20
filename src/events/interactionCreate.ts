@@ -3,8 +3,12 @@ import {
   Events,
   MessageFlags,
   PermissionsBitField,
+  type ButtonInteraction,
   type InteractionReplyOptions,
 } from 'discord.js';
+import { handleGiveawayButton } from '../modules/giveaways';
+import { handlePollButton } from '../modules/polls';
+import { handleTicketButton } from '../modules/tickets';
 import { defineEvent, type CommandContext } from '../core/types';
 import { createLogger } from '../core/logger';
 import { defaultSettings, getSettings, isModuleEnabled } from '../db/guilds';
@@ -16,11 +20,55 @@ import { canManageRole } from '../utils/permissions';
 
 const log = createLogger('interaction');
 
+/** Tugma modullari — har biri o'z customId'larini taniydi va `true` qaytaradi. */
+const BUTTON_HANDLERS: ((interaction: ButtonInteraction<'cached'>) => Promise<boolean>)[] = [
+  handleTicketButton,
+  handleGiveawayButton,
+  handlePollButton,
+];
+
 export default defineEvent(Events.InteractionCreate, async (client, interaction) => {
-  // ── Rol tugmalari ─────────────────────────────────────────────────────────
+  // ── Autocomplete ──────────────────────────────────────────────────────────
+  if (interaction.isAutocomplete()) {
+    const command = client.commands.get(interaction.commandName);
+    if (!command?.autocomplete) return;
+    const settings = interaction.inGuild() ? getSettings(interaction.guildId) : defaultSettings();
+    try {
+      await command.autocomplete(interaction, { client, settings, t: createTranslator(settings.locale) });
+    } catch (error) {
+      log.warn(`/${interaction.commandName} autocomplete xatosi:`, error);
+      await interaction.respond([]).catch(() => null);
+    }
+    return;
+  }
+
+  // ── Tugmalar ──────────────────────────────────────────────────────────────
   if (interaction.isButton()) {
+    if (!interaction.inCachedGuild()) return;
+
+    try {
+      for (const handle of BUTTON_HANDLERS) {
+        if (await handle(interaction)) return;
+      }
+    } catch (error) {
+      log.error(`Tugma xatosi (${interaction.customId}):`, error);
+      const t = createTranslator(getSettings(interaction.guildId).locale);
+      const payload = { embeds: [errorEmbed(t('error.generic'))], flags: MessageFlags.Ephemeral } as const;
+      if (interaction.deferred || interaction.replied) await interaction.followUp(payload).catch(() => null);
+      else await interaction.reply(payload).catch(() => null);
+      return;
+    }
+
+    // Eski takliflardagi ovoz tugmalari — endi reaksiyalar ishlatiladi.
+    if (interaction.customId.startsWith('suggest_')) {
+      const t = createTranslator(getSettings(interaction.guildId).locale);
+      await interaction.reply({ content: t('suggest.legacyButton'), flags: MessageFlags.Ephemeral });
+      return;
+    }
+
+    // ── Rol tugmalari ───────────────────────────────────────────────────────
     const roleId = roleIdFromCustomId(interaction.customId);
-    if (!roleId || !interaction.inCachedGuild()) return;
+    if (!roleId) return;
 
     const settings = getSettings(interaction.guildId);
     const t = createTranslator(settings.locale);

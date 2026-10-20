@@ -269,23 +269,23 @@ async function punish(
   }
 }
 
-/** Har bir yangi xabar shu funksiyadan o'tadi. */
-export async function inspectMessage(message: Message): Promise<void> {
-  if (!message.inGuild()) return;
-  if (message.author.bot || message.system) return;
+/** Har bir yangi xabar shu funksiyadan o'tadi. Xabar qoidani buzgan bo'lsa `true`. */
+export async function inspectMessage(message: Message): Promise<boolean> {
+  if (!message.inGuild()) return false;
+  if (message.author.bot || message.system) return false;
 
   const member = message.member;
-  if (!member) return;
+  if (!member) return false;
 
   const settings = getSettings(message.guildId);
-  if (!isModuleEnabled(settings, 'automod')) return;
+  if (!isModuleEnabled(settings, 'automod')) return false;
 
   const automod = getAutoMod(message.guildId);
-  if (!automod.enabled) return;
-  if (isExempt(member, message, automod)) return;
+  if (!automod.enabled) return false;
+  if (isExempt(member, message, automod)) return false;
 
   const verdict = checkRules(message, member, automod);
-  if (!verdict) return;
+  if (!verdict) return false;
 
   const t = createTranslator(settings.locale);
 
@@ -330,6 +330,8 @@ export async function inspectMessage(message: Message): Promise<void> {
       )
       .setTimestamp()
   );
+
+  return true;
 }
 
 /**

@@ -20,7 +20,7 @@ export async function getTag(guildId: string, name: string): Promise<Tag | null>
     .from('tags')
     .select('*')
     .eq('guild_id', guildId)
-    .ilike('name', name)
+    .eq('name', name.toLowerCase())
     .single();
 
   return data ? (data as Tag) : null;
@@ -44,7 +44,7 @@ export async function updateTag(
     .from('tags')
     .update({ ...patch, updated_at: new Date().toISOString() })
     .eq('guild_id', guildId)
-    .ilike('name', name);
+    .eq('name', name.toLowerCase());
 
   if (error) {
     log.error(`updateTag: ${error.message}`);
@@ -58,7 +58,7 @@ export async function deleteTag(guildId: string, name: string): Promise<boolean>
     .from('tags')
     .delete({ count: 'exact' })
     .eq('guild_id', guildId)
-    .ilike('name', name);
+    .eq('name', name.toLowerCase());
 
   if (error) {
     log.error(`deleteTag: ${error.message}`);
@@ -72,6 +72,20 @@ export async function incrementTagUses(id: number): Promise<void> {
   if (data) {
     await supabase.from('tags').update({ uses: Number(data.uses) + 1 }).eq('id', id);
   }
+}
+
+/** Autocomplete uchun: nomi shu matndan boshlanadigan taglar. */
+export async function searchTagNames(guildId: string, prefix: string, limit = 25): Promise<string[]> {
+  // LIKE maxsus belgilari (% _ \) foydalanuvchi matnida wildcard bo'lib qolmasin.
+  const safe = prefix.toLowerCase().replace(/[%_\\]/g, '');
+  const { data } = await supabase
+    .from('tags')
+    .select('name')
+    .eq('guild_id', guildId)
+    .like('name', `${safe}%`)
+    .order('uses', { ascending: false })
+    .limit(limit);
+  return (data ?? []).map((row) => String(row.name));
 }
 
 export async function listTags(guildId: string): Promise<Tag[]> {

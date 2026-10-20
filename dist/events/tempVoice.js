@@ -2,42 +2,60 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const types_1 = require("../core/types");
-// Voice channel creation trigger names
-const TRIGGER_NAMES = ['join-to-create', 'voice-yaratish', '+ create voice'];
-// Track created temporary channels
+const logger_1 = require("../core/logger");
+const log = (0, logger_1.createLogger)('tempvoice');
+/** Shu nomli ovozli kanalga kirgan a'zoga shaxsiy kanal ochiladi. */
+const TRIGGER_NAMES = ['join-to-create', 'voice-yaratish', '+ create voice', '➕ kanal yaratish'];
+const TEMP_PREFIX = '🔊 ';
+const TEMP_SUFFIX = ' kanali';
+/** Bot yaratgan kanallar. Qayta ishga tushganda nom bo'yicha ham taniladi. */
 const tempChannels = new Set();
-exports.default = (0, types_1.defineEvent)('voiceStateUpdate', async (client, oldState, newState) => {
+function isTrigger(channel) {
+    const name = channel.name.toLowerCase();
+    return TRIGGER_NAMES.some((trigger) => name.includes(trigger));
+}
+function isTemp(channel) {
+    return tempChannels.has(channel.id) || (channel.name.startsWith(TEMP_PREFIX) && channel.name.endsWith(TEMP_SUFFIX));
+}
+exports.default = (0, types_1.defineEvent)(discord_js_1.Events.VoiceStateUpdate, async (_client, oldState, newState) => {
     const guild = newState.guild ?? oldState.guild;
-    if (!guild)
+    const me = guild.members.me;
+    if (!me?.permissions.has([discord_js_1.PermissionFlagsBits.ManageChannels, discord_js_1.PermissionFlagsBits.MoveMembers]))
         return;
-    // Member joined a trigger channel
-    if (newState.channelId && newState.channel) {
-        const isTrigger = TRIGGER_NAMES.some((name) => newState.channel.name.toLowerCase().includes(name));
-        if (isTrigger && newState.member) {
-            const category = newState.channel.parentId;
-            const createdChannel = await guild.channels.create({
-                name: `🔊 ${newState.member.displayName} kanali`,
-                type: discord_js_1.ChannelType.GuildVoice,
-                parent: category ?? undefined,
-                permissionOverwrites: [
-                    {
-                        id: newState.member.id,
-                        allow: [discord_js_1.PermissionFlagsBits.ManageChannels, discord_js_1.PermissionFlagsBits.MoveMembers],
-                    },
-                ],
-            }).catch(() => null);
-            if (createdChannel) {
-                tempChannels.add(createdChannel.id);
-                await newState.member.voice.setChannel(createdChannel).catch(() => null);
-            }
+    // Trigger kanalga kirdi — shaxsiy kanal ochamiz.
+    const joined = newState.channel;
+    if (joined && newState.member && !newState.member.user.bot && isTrigger(joined) && joined.id !== oldState.channelId) {
+        const member = newState.member;
+        const created = await guild.channels
+            .create({
+            name: `${TEMP_PREFIX}${member.displayName}${TEMP_SUFFIX}`.slice(0, 100),
+            type: discord_js_1.ChannelType.GuildVoice,
+            parent: joined.parentId ?? undefined,
+            bitrate: joined.bitrate,
+            userLimit: joined.userLimit,
+            permissionOverwrites: [
+                ...joined.permissionOverwrites.cache.values(),
+                {
+                    id: member.id,
+                    allow: [discord_js_1.PermissionFlagsBits.ManageChannels, discord_js_1.PermissionFlagsBits.MoveMembers, discord_js_1.PermissionFlagsBits.MuteMembers],
+                },
+            ],
+            reason: `Vaqtinchalik kanal: ${member.user.tag}`,
+        })
+            .catch((error) => {
+            log.warn(`Vaqtinchalik kanal yaratilmadi (${guild.id}):`, error);
+            return null;
+        });
+        if (created) {
+            tempChannels.add(created.id);
+            await member.voice.setChannel(created).catch(() => created.delete().catch(() => null));
         }
     }
-    // Member left a temporary channel - if empty, delete it
-    if (oldState.channelId && oldState.channel && tempChannels.has(oldState.channelId)) {
-        if (oldState.channel.members.size === 0) {
-            tempChannels.delete(oldState.channelId);
-            await oldState.channel.delete('Temp voice empty').catch(() => null);
-        }
+    // Vaqtinchalik kanal bo'shab qoldi — o'chiramiz.
+    const left = oldState.channel;
+    if (left && left.id !== newState.channelId && isTemp(left) && left.members.size === 0) {
+        tempChannels.delete(left.id);
+        await left.delete("Vaqtinchalik kanal bo'sh qoldi").catch(() => null);
     }
 });
 //# sourceMappingURL=tempVoice.js.map

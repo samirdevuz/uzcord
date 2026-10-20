@@ -1,170 +1,142 @@
-import {
-  SlashCommandBuilder,
-  PermissionFlagsBits,
-  EmbedBuilder,
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ChatInputCommandInteraction,
-  ChannelType,
-} from 'discord.js';
+import { ChannelType, MessageFlags, PermissionFlagsBits, SlashCommandBuilder, type TextChannel } from 'discord.js';
 import { defineCommand } from '../../core/types';
-import { addGiveawayEntry, createGiveaway, endGiveaway, getGiveawayByMessage, getGiveawayEntries } from '../../db/giveaways';
-import { parseDuration } from '../../utils/time';
+import { createGiveaway, getGiveawayByMessage } from '../../db/giveaways';
+import {
+  buildGiveawayEmbed,
+  finishGiveaway,
+  giveawayComponents,
+  rerollGiveaway,
+} from '../../modules/giveaways';
+import { reply } from '../../modules/moderation/actions';
+import { errorEmbed, successEmbed } from '../../utils/embeds';
+import { DAY, MINUTE, parseDuration } from '../../utils/time';
+
+const MAX_DURATION = 30 * DAY;
+
+/** Xabar havolasi yoki ID dan xabar IDsini ajratib oladi. */
+function messageIdFrom(input: string): string {
+  return input.trim().split('/').pop()!.replace(/\D/g, '');
+}
 
 export default defineCommand({
+  category: 'utility',
+  botPermissions: [PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks],
   data: new SlashCommandBuilder()
     .setName('giveaway')
     .setDescription('Konkurs (giveaway) yaratish va boshqarish')
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
+    .setDMPermission(false)
     .addSubcommand((sub) =>
       sub
         .setName('create')
-        .setDescription('Yangi konkurs yaratadi')
-        .addStringOption((opt) => opt.setName('prize').setDescription('Yutuq').setRequired(true))
-        .addStringOption((opt) => opt.setName('duration').setDescription('Davomiyligi (masalan: 1h, 1d, 30m)').setRequired(true))
-        .addIntegerOption((opt) => opt.setName('winners').setDescription("G'oliblar soni (standart: 1)").setMinValue(1).setMaxValue(20))
-        .addChannelOption((opt) =>
-          opt.setName('channel').setDescription('Kanal').addChannelTypes(ChannelType.GuildText)
-        )
-        .addRoleOption((opt) => opt.setName('required_role').setDescription('Talab qilinadigan rol'))
-        .addStringOption((opt) => opt.setName('description').setDescription('Tavsif'))
+        .setDescription('Yangi konkurs boshlaydi')
+        .addStringOption((opt) => opt.setName('prize').setDescription('Yutuq').setRequired(true).setMaxLength(200))
+        .addStringOption((opt) => opt.setName('duration').setDescription('Davomiyligi: 30m, 2h, 1d (ko\'pi bilan 30 kun)').setRequired(true))
+        .addIntegerOption((opt) => opt.setName('winners').setDescription("G'oliblar soni").setMinValue(1).setMaxValue(20))
+        .addChannelOption((opt) => opt.setName('channel').setDescription('Kanal').addChannelTypes(ChannelType.GuildText))
+        .addRoleOption((opt) => opt.setName('required_role').setDescription('Qatnashish uchun kerakli rol'))
+        .addStringOption((opt) => opt.setName('description').setDescription('Tavsif').setMaxLength(1000))
     )
     .addSubcommand((sub) =>
       sub
         .setName('end')
         .setDescription('Konkursni muddatidan oldin yakunlaydi')
-        .addStringOption((opt) => opt.setName('message_id').setDescription('Konkurs xabarining IDsi').setRequired(true))
+        .addStringOption((opt) => opt.setName('message').setDescription('Konkurs xabarining IDsi yoki havolasi').setRequired(true))
     )
     .addSubcommand((sub) =>
       sub
         .setName('reroll')
-        .setDescription("Yangi g'olibni qayta tanlaydi")
-        .addStringOption((opt) => opt.setName('message_id').setDescription('Konkurs xabarining IDsi').setRequired(true))
+        .setDescription("Yakunlangan konkurs uchun yangi g'olib tanlaydi")
+        .addStringOption((opt) => opt.setName('message').setDescription('Konkurs xabarining IDsi yoki havolasi').setRequired(true))
+        .addIntegerOption((opt) => opt.setName('winners').setDescription("Nechta yangi g'olib").setMinValue(1).setMaxValue(10))
     ),
-  category: 'utility',
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) return;
-
+  async execute(interaction, ctx) {
+    const { t } = ctx;
+    const guild = interaction.guild!;
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === 'create') {
       const prize = interaction.options.getString('prize', true);
-      const durationStr = interaction.options.getString('duration', true);
+      const durationMs = parseDuration(interaction.options.getString('duration', true));
       const winnerCount = interaction.options.getInteger('winners') ?? 1;
-      const targetChannel = (interaction.options.getChannel('channel') ?? interaction.channel) as any;
-      const reqRole = interaction.options.getRole('required_role');
+      const channel = (interaction.options.getChannel('channel') ?? interaction.channel) as TextChannel | null;
+      const role = interaction.options.getRole('required_role');
       const description = interaction.options.getString('description');
 
-      const durationMs = parseDuration(durationStr);
-      if (!durationMs || durationMs < 60_000) {
-        await interaction.reply({
-          content: "Noto'g'ri muddat kiritildi. Eng kamida `1m` (1 daqiqa) bo'lishi kerak. Masalan: `30m`, `2h`, `1d`.",
-          ephemeral: true,
-        });
+      if (!durationMs || durationMs < MINUTE || durationMs > MAX_DURATION) {
+        await reply(interaction, errorEmbed(t('giveaway.invalidDuration')), true);
+        return;
+      }
+      if (!channel || channel.type !== ChannelType.GuildText) {
+        await reply(interaction, errorEmbed(t('error.channelType')), true);
+        return;
+      }
+      const me = guild.members.me!;
+      if (!channel.permissionsFor(me)?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+        await reply(interaction, errorEmbed(t('giveaway.noPermission', { channel: `<#${channel.id}>` })), true);
         return;
       }
 
-      const endsAt = new Date(Date.now() + durationMs).toISOString();
-
-      const embed = new EmbedBuilder()
-        .setTitle(`🎉 KONKURS: ${prize}`)
-        .setDescription(
-          (description ? `${description}\n\n` : '') +
-            `**G'oliblar:** ${winnerCount} ta\n` +
-            `**Tashkilotchi:** <@${interaction.user.id}>\n` +
-            (reqRole ? `**Kerakli rol:** ${reqRole}\n` : '') +
-            `**Tugash vaqti:** <t:${Math.floor(Date.now() / 1000 + durationMs / 1000)}:R>`
-        )
-        .setColor('#ec4899')
-        .setFooter({ text: "Qatnashish uchun pastdagi 🎉 tugmasini bosing!" })
-        .setTimestamp(new Date(Date.now() + durationMs));
-
-      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-        new ButtonBuilder()
-          .setCustomId('giveaway_enter')
-          .setLabel('Qatnashish')
-          .setEmoji('🎉')
-          .setStyle(ButtonStyle.Success)
-      );
-
-      const msg = await targetChannel.send({ embeds: [embed], components: [row] });
-
-      await createGiveaway({
-        guild_id: interaction.guild.id,
-        channel_id: targetChannel.id,
-        message_id: msg.id,
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const draft = {
+        guild_id: guild.id,
+        channel_id: channel.id,
+        message_id: null as string | null,
         prize,
         description,
         winner_count: winnerCount,
         host_id: interaction.user.id,
-        required_role_id: reqRole?.id ?? null,
+        required_role_id: role?.id ?? null,
         required_level: null,
-        ends_at: endsAt,
-      });
+        ends_at: new Date(Date.now() + durationMs).toISOString(),
+      };
+      const preview = { ...draft, id: 0, ended: false, winners: [], created_at: new Date().toISOString() };
 
-      await interaction.reply({
-        content: `✅ Konkurs ${targetChannel} kanalida boshlandi!`,
-        ephemeral: true,
+      const message = await channel.send({
+        embeds: [buildGiveawayEmbed(preview, t, { entries: 0, ended: false })],
+        components: giveawayComponents(t, 0, false),
       });
+      const saved = await createGiveaway({ ...draft, message_id: message.id });
+      if (!saved) {
+        await message.delete().catch(() => null);
+        await reply(interaction, errorEmbed(t('error.generic')));
+        return;
+      }
+      await reply(interaction, successEmbed(t('giveaway.created', { channel: `<#${channel.id}>` })));
+      return;
+    }
+
+    const giveaway = await getGiveawayByMessage(messageIdFrom(interaction.options.getString('message', true)));
+    if (!giveaway || giveaway.guild_id !== guild.id) {
+      await reply(interaction, errorEmbed(t('giveaway.notFound')), true);
       return;
     }
 
     if (subcommand === 'end') {
-      const messageId = interaction.options.getString('message_id', true);
-      const giveaway = await getGiveawayByMessage(messageId);
-
-      if (!giveaway || giveaway.guild_id !== interaction.guild.id) {
-        await interaction.reply({ content: 'Konkurs topilmadi.', ephemeral: true });
-        return;
-      }
-
       if (giveaway.ended) {
-        await interaction.reply({ content: 'Bu konkurs allaqachon yakunlangan.', ephemeral: true });
+        await reply(interaction, errorEmbed(t('giveaway.ended')), true);
         return;
       }
-
-      const entries = await getGiveawayEntries(giveaway.id);
-      const winners: string[] = [];
-
-      if (entries.length > 0) {
-        const pool = [...entries];
-        const count = Math.min(giveaway.winner_count, pool.length);
-        for (let i = 0; i < count; i++) {
-          const randomIndex = Math.floor(Math.random() * pool.length);
-          winners.push(pool.splice(randomIndex, 1)[0]);
-        }
-      }
-
-      await endGiveaway(giveaway.id, winners);
-
-      const winnersText = winners.length > 0 ? winners.map((w) => `<@${w}>`).join(', ') : "Ishtirokchilar bo'lmadi";
-      await interaction.reply({
-        content: `🎉 Konkurs yakunlandi!\n**G'oliblar:** ${winnersText}`,
-      });
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      const winners = await finishGiveaway(interaction.client, giveaway);
+      await reply(interaction, successEmbed(winners ? t('giveaway.endedManual') : t('giveaway.ended')));
       return;
     }
 
-    if (subcommand === 'reroll') {
-      const messageId = interaction.options.getString('message_id', true);
-      const giveaway = await getGiveawayByMessage(messageId);
-
-      if (!giveaway || giveaway.guild_id !== interaction.guild.id) {
-        await interaction.reply({ content: 'Konkurs topilmadi.', ephemeral: true });
-        return;
-      }
-
-      const entries = await getGiveawayEntries(giveaway.id);
-      if (entries.length === 0) {
-        await interaction.reply({ content: "Ishtirokchilar bo'lmagan.", ephemeral: true });
-        return;
-      }
-
-      const randomWinner = entries[Math.floor(Math.random() * entries.length)];
-      await interaction.reply({
-        content: `🎉 Yangi g'olib qayta tanlandi: <@${randomWinner}>! Tabriklaymiz!`,
-      });
+    // reroll
+    if (!giveaway.ended) {
+      await reply(interaction, errorEmbed(t('giveaway.notEnded')), true);
+      return;
     }
+    const fresh = await rerollGiveaway(giveaway, interaction.options.getInteger('winners') ?? 1);
+    if (fresh.length === 0) {
+      await reply(interaction, errorEmbed(t('giveaway.noReroll')), true);
+      return;
+    }
+    await interaction.reply({
+      content: t('giveaway.rerolled', { winners: fresh.map((id) => `<@${id}>`).join(', '), prize: giveaway.prize }),
+      allowedMentions: { users: fresh },
+    });
   },
 });

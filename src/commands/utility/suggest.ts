@@ -1,43 +1,68 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ChatInputCommandInteraction } from 'discord.js';
+import {
+  ChannelType,
+  EmbedBuilder,
+  MessageFlags,
+  PermissionFlagsBits,
+  SlashCommandBuilder,
+  type TextChannel,
+} from 'discord.js';
 import { defineCommand } from '../../core/types';
-import { getSettings } from '../../db/guilds';
+import { reply } from '../../modules/moderation/actions';
+import { errorEmbed, successEmbed } from '../../utils/embeds';
+
+/** Takliflar kanali nomi bo'yicha topiladi (masalan #takliflar yoki #suggestions). */
+const CHANNEL_HINTS = ['takliflar', 'taklif', 'suggestions', 'suggestion', 'предложения'];
 
 export default defineCommand({
+  category: 'utility',
+  cooldown: 60,
   data: new SlashCommandBuilder()
     .setName('suggest')
-    .setDescription('Server uchun taklif yuborish')
-    .addStringOption((opt) => opt.setName('text').setDescription('Taklif matni').setRequired(true)),
-  category: 'utility',
+    .setDescription('Server uchun taklif yuboradi')
+    .setDMPermission(false)
+    .addStringOption((opt) => opt.setName('text').setDescription('Taklif matni').setRequired(true).setMinLength(10).setMaxLength(2000)),
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) return;
-
+  async execute(interaction, ctx) {
+    const { t } = ctx;
+    const guild = interaction.guild!;
+    const me = guild.members.me!;
     const text = interaction.options.getString('text', true);
-    const settings = getSettings(interaction.guild.id);
 
-    // If server_log_channel_id or message_log_channel_id is set or channel named 'suggestions'
-    const channel = interaction.guild.channels.cache.find(
-      (c) => c.name === 'takliflar' || c.name === 'suggestions'
+    const named = guild.channels.cache.find(
+      (channel): channel is TextChannel =>
+        channel.type === ChannelType.GuildText && CHANNEL_HINTS.some((hint) => channel.name.toLowerCase().includes(hint))
     );
+    const target = (named ?? interaction.channel) as TextChannel | null;
+    if (!target || target.type !== ChannelType.GuildText) {
+      await reply(interaction, errorEmbed(t('error.channelType')), true);
+      return;
+    }
+    const permissions = target.permissionsFor(me);
+    if (!permissions?.has([PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks, PermissionFlagsBits.AddReactions])) {
+      await reply(interaction, errorEmbed(t('error.botMissingPermission', { permissions: 'SendMessages, EmbedLinks, AddReactions' })), true);
+      return;
+    }
 
     const embed = new EmbedBuilder()
-      .setTitle('💡 Yangi taklif')
+      .setColor(0xf59e0b)
+      .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
+      .setTitle(`💡 ${t('suggest.title')}`)
       .setDescription(text)
-      .setColor('#f59e0b')
-      .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-      .addFields({ name: 'Holat', value: '⏳ Ko\'rib chiqilmoqda' })
+      .setFooter({ text: t('suggest.footer') })
       .setTimestamp();
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      new ButtonBuilder().setCustomId('suggest_upvote').setLabel('0').setEmoji('👍').setStyle(ButtonStyle.Secondary),
-      new ButtonBuilder().setCustomId('suggest_downvote').setLabel('0').setEmoji('👎').setStyle(ButtonStyle.Secondary)
-    );
-
-    if (channel && 'send' in channel) {
-      await (channel as any).send({ embeds: [embed], components: [row] });
-      await interaction.reply({ content: `✅ Taklifingiz ${channel} kanaliga yuborildi!`, ephemeral: true });
-    } else {
-      await interaction.reply({ embeds: [embed], components: [row] });
+    const message = await target.send({ embeds: [embed] });
+    await message.react('👍').catch(() => null);
+    await message.react('👎').catch(() => null);
+    if (permissions.has(PermissionFlagsBits.CreatePublicThreads)) {
+      await message
+        .startThread({ name: `💬 ${text.slice(0, 80)}`, autoArchiveDuration: 10080 })
+        .catch(() => null);
     }
+
+    await interaction.reply({
+      embeds: [successEmbed(t('suggest.sent', { link: message.url }))],
+      flags: MessageFlags.Ephemeral,
+    });
   },
 });

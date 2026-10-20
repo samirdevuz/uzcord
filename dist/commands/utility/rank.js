@@ -3,44 +3,47 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const types_1 = require("../../core/types");
 const leveling_1 = require("../../db/leveling");
+const leveling_2 = require("../../modules/leveling");
+const actions_1 = require("../../modules/moderation/actions");
+const embeds_1 = require("../../utils/embeds");
 const xp_1 = require("../../utils/xp");
 exports.default = (0, types_1.defineCommand)({
+    category: 'utility',
     data: new discord_js_1.SlashCommandBuilder()
         .setName('rank')
-        .setDescription("Foydalanuvchining XP va darajasini ko'rsatadi")
-        .addUserOption((opt) => opt.setName('user').setDescription('Foydalanuvchi').setRequired(false)),
-    category: 'utility',
-    async execute(interaction) {
-        if (!interaction.guild)
-            return;
-        const levelSettings = await (0, leveling_1.getLevelSettings)(interaction.guild.id);
-        if (!levelSettings.enabled) {
-            await interaction.reply({
-                content: "Ushbu serverda leveling / XP tizimi o'chirilgan.",
-                ephemeral: true,
-            });
+        .setDescription("Daraja, XP va reytingdagi o'rinni ko'rsatadi")
+        .setDMPermission(false)
+        .addUserOption((opt) => opt.setName('user').setDescription('Foydalanuvchi')),
+    async execute(interaction, ctx) {
+        const { t } = ctx;
+        const guild = interaction.guild;
+        if (!(await (0, leveling_2.isLevelingActive)(guild.id))) {
+            await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('level.disabled')), true);
             return;
         }
-        const targetUser = interaction.options.getUser('user') ?? interaction.user;
-        const memberData = await (0, leveling_1.getMemberLevel)(interaction.guild.id, targetUser.id);
-        if (!memberData) {
-            await interaction.reply({
-                content: `${targetUser.tag} hali XP ga ega emas.`,
-                ephemeral: true,
-            });
+        const user = interaction.options.getUser('user') ?? interaction.user;
+        if (user.bot) {
+            await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('level.noXp', { user: user.username })), true);
             return;
         }
-        const rank = await (0, leveling_1.getMemberRank)(interaction.guild.id, targetUser.id);
-        const progress = (0, xp_1.xpProgress)(memberData.xp);
+        const data = await (0, leveling_1.getMemberLevel)(guild.id, user.id);
+        if (!data || Number(data.xp) <= 0) {
+            await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('level.noXp', { user: user.username })), true);
+            return;
+        }
+        const xp = Number(data.xp);
+        const rank = await (0, leveling_1.getMemberRank)(guild.id, user.id);
+        const progress = (0, xp_1.xpProgress)(xp);
+        const member = await guild.members.fetch(user.id).catch(() => null);
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle(`📊 ${targetUser.username} — Rank Card`)
-            .setThumbnail(targetUser.displayAvatarURL())
-            .setColor('#3b82f6')
-            .addFields({ name: "O'rni (Rank)", value: `#${rank || '-'}`, inline: true }, { name: 'Daraja (Level)', value: `${progress.level}`, inline: true }, { name: 'Jami XP', value: `${memberData.xp.toLocaleString()}`, inline: true }, {
-            name: 'Progress',
-            value: `${progress.currentXpInLevel} / ${progress.neededXpForLevel} XP (${progress.progressPercent}%)`,
-        }, { name: 'Xabarlar soni', value: `${memberData.messages.toLocaleString()}`, inline: true })
-            .setFooter({ text: 'UzCord Leveling System' })
+            .setColor(member?.displayColor || embeds_1.COLORS.brand)
+            .setAuthor({ name: t('level.rankTitle', { user: member?.displayName ?? user.username }), iconURL: user.displayAvatarURL() })
+            .setThumbnail(user.displayAvatarURL({ size: 256 }))
+            .addFields({ name: t('level.rank'), value: rank ? `#${rank}` : '—', inline: true }, { name: t('level.level'), value: String(progress.level), inline: true }, { name: t('level.totalXp'), value: xp.toLocaleString('uz-UZ'), inline: true }, {
+            name: t('level.progress', { level: progress.level + 1 }),
+            value: `\`${(0, leveling_2.progressBar)(progress.progressPercent, 16)}\` **${progress.progressPercent}%**\n` +
+                `${progress.currentXpInLevel.toLocaleString('uz-UZ')} / ${progress.neededXpForLevel.toLocaleString('uz-UZ')} XP`,
+        }, { name: t('level.messages'), value: Number(data.messages).toLocaleString('uz-UZ'), inline: true })
             .setTimestamp();
         await interaction.reply({ embeds: [embed] });
     },

@@ -17,12 +17,14 @@ class UzCordClient extends discord_js_1.Client {
                 discord_js_1.GatewayIntentBits.MessageContent, // privileged — automod uchun shart
                 discord_js_1.GatewayIntentBits.GuildModeration,
                 discord_js_1.GatewayIntentBits.GuildVoiceStates,
+                discord_js_1.GatewayIntentBits.GuildMessageReactions, // starboard uchun
             ],
             partials: [
                 discord_js_1.Partials.Message,
                 discord_js_1.Partials.Channel,
                 discord_js_1.Partials.GuildMember,
                 discord_js_1.Partials.User,
+                discord_js_1.Partials.Reaction, // keshda yo'q eski xabarlardagi reaksiyalar ham kelsin
             ],
             allowedMentions: { parse: ['users'], repliedUser: false },
             // Keraksiz keshlarni cheklash — xotirani tejaydi.

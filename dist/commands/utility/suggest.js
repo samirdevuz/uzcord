@@ -2,35 +2,53 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const types_1 = require("../../core/types");
-const guilds_1 = require("../../db/guilds");
+const actions_1 = require("../../modules/moderation/actions");
+const embeds_1 = require("../../utils/embeds");
+/** Takliflar kanali nomi bo'yicha topiladi (masalan #takliflar yoki #suggestions). */
+const CHANNEL_HINTS = ['takliflar', 'taklif', 'suggestions', 'suggestion', 'предложения'];
 exports.default = (0, types_1.defineCommand)({
+    category: 'utility',
+    cooldown: 60,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('suggest')
-        .setDescription('Server uchun taklif yuborish')
-        .addStringOption((opt) => opt.setName('text').setDescription('Taklif matni').setRequired(true)),
-    category: 'utility',
-    async execute(interaction) {
-        if (!interaction.guild)
-            return;
+        .setDescription('Server uchun taklif yuboradi')
+        .setDMPermission(false)
+        .addStringOption((opt) => opt.setName('text').setDescription('Taklif matni').setRequired(true).setMinLength(10).setMaxLength(2000)),
+    async execute(interaction, ctx) {
+        const { t } = ctx;
+        const guild = interaction.guild;
+        const me = guild.members.me;
         const text = interaction.options.getString('text', true);
-        const settings = (0, guilds_1.getSettings)(interaction.guild.id);
-        // If server_log_channel_id or message_log_channel_id is set or channel named 'suggestions'
-        const channel = interaction.guild.channels.cache.find((c) => c.name === 'takliflar' || c.name === 'suggestions');
+        const named = guild.channels.cache.find((channel) => channel.type === discord_js_1.ChannelType.GuildText && CHANNEL_HINTS.some((hint) => channel.name.toLowerCase().includes(hint)));
+        const target = (named ?? interaction.channel);
+        if (!target || target.type !== discord_js_1.ChannelType.GuildText) {
+            await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('error.channelType')), true);
+            return;
+        }
+        const permissions = target.permissionsFor(me);
+        if (!permissions?.has([discord_js_1.PermissionFlagsBits.SendMessages, discord_js_1.PermissionFlagsBits.EmbedLinks, discord_js_1.PermissionFlagsBits.AddReactions])) {
+            await (0, actions_1.reply)(interaction, (0, embeds_1.errorEmbed)(t('error.botMissingPermission', { permissions: 'SendMessages, EmbedLinks, AddReactions' })), true);
+            return;
+        }
         const embed = new discord_js_1.EmbedBuilder()
-            .setTitle('💡 Yangi taklif')
+            .setColor(0xf59e0b)
+            .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
+            .setTitle(`💡 ${t('suggest.title')}`)
             .setDescription(text)
-            .setColor('#f59e0b')
-            .setAuthor({ name: interaction.user.tag, iconURL: interaction.user.displayAvatarURL() })
-            .addFields({ name: 'Holat', value: '⏳ Ko\'rib chiqilmoqda' })
+            .setFooter({ text: t('suggest.footer') })
             .setTimestamp();
-        const row = new discord_js_1.ActionRowBuilder().addComponents(new discord_js_1.ButtonBuilder().setCustomId('suggest_upvote').setLabel('0').setEmoji('👍').setStyle(discord_js_1.ButtonStyle.Secondary), new discord_js_1.ButtonBuilder().setCustomId('suggest_downvote').setLabel('0').setEmoji('👎').setStyle(discord_js_1.ButtonStyle.Secondary));
-        if (channel && 'send' in channel) {
-            await channel.send({ embeds: [embed], components: [row] });
-            await interaction.reply({ content: `✅ Taklifingiz ${channel} kanaliga yuborildi!`, ephemeral: true });
+        const message = await target.send({ embeds: [embed] });
+        await message.react('👍').catch(() => null);
+        await message.react('👎').catch(() => null);
+        if (permissions.has(discord_js_1.PermissionFlagsBits.CreatePublicThreads)) {
+            await message
+                .startThread({ name: `💬 ${text.slice(0, 80)}`, autoArchiveDuration: 10080 })
+                .catch(() => null);
         }
-        else {
-            await interaction.reply({ embeds: [embed], components: [row] });
-        }
+        await interaction.reply({
+            embeds: [(0, embeds_1.successEmbed)(t('suggest.sent', { link: message.url }))],
+            flags: discord_js_1.MessageFlags.Ephemeral,
+        });
     },
 });
 //# sourceMappingURL=suggest.js.map

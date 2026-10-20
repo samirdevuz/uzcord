@@ -1,25 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.afkUsers = void 0;
 const discord_js_1 = require("discord.js");
 const types_1 = require("../../core/types");
-// Global AFK state in memory: guildId:userId -> reason
-exports.afkUsers = new Map();
+const afk_1 = require("../../modules/afk");
 exports.default = (0, types_1.defineCommand)({
+    category: 'utility',
+    cooldown: 10,
     data: new discord_js_1.SlashCommandBuilder()
         .setName('afk')
-        .setDescription('AFK (Klaviaturadan uzoqda) holatini o\'rnatadi')
-        .addStringOption((opt) => opt.setName('reason').setDescription('Sabab')),
-    category: 'utility',
-    async execute(interaction) {
-        if (!interaction.guild)
-            return;
-        const reason = interaction.options.getString('reason') ?? 'Sabab ko\'rsatilmadi';
-        const key = `${interaction.guild.id}:${interaction.user.id}`;
-        exports.afkUsers.set(key, { reason, timestamp: Date.now() });
-        await interaction.reply({
-            content: `💤 **${interaction.user.username}** endi AFK: *${reason}*`,
-        });
+        .setDescription('AFK holatini yoqadi — sizni eslatganlarga sabab ko\'rsatiladi')
+        .setDMPermission(false)
+        .addStringOption((opt) => opt.setName('reason').setDescription('Sabab').setMaxLength(200)),
+    async execute(interaction, ctx) {
+        const { t } = ctx;
+        const member = interaction.member;
+        const reason = interaction.options.getString('reason') ?? t('afk.noReason');
+        await (0, afk_1.setAfk)(member, reason);
+        await interaction.reply({ content: t('afk.set', { user: member.displayName, reason }), allowedMentions: { parse: [] } });
     },
 });
 //# sourceMappingURL=afk.js.map

@@ -1,6 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
+const giveaways_1 = require("../modules/giveaways");
+const polls_1 = require("../modules/polls");
+const tickets_1 = require("../modules/tickets");
 const types_1 = require("../core/types");
 const logger_1 = require("../core/logger");
 const guilds_1 = require("../db/guilds");
@@ -10,11 +13,57 @@ const i18n_1 = require("../i18n");
 const embeds_1 = require("../utils/embeds");
 const permissions_1 = require("../utils/permissions");
 const log = (0, logger_1.createLogger)('interaction');
+/** Tugma modullari — har biri o'z customId'larini taniydi va `true` qaytaradi. */
+const BUTTON_HANDLERS = [
+    tickets_1.handleTicketButton,
+    giveaways_1.handleGiveawayButton,
+    polls_1.handlePollButton,
+];
 exports.default = (0, types_1.defineEvent)(discord_js_1.Events.InteractionCreate, async (client, interaction) => {
-    // ── Rol tugmalari ─────────────────────────────────────────────────────────
+    // ── Autocomplete ──────────────────────────────────────────────────────────
+    if (interaction.isAutocomplete()) {
+        const command = client.commands.get(interaction.commandName);
+        if (!command?.autocomplete)
+            return;
+        const settings = interaction.inGuild() ? (0, guilds_1.getSettings)(interaction.guildId) : (0, guilds_1.defaultSettings)();
+        try {
+            await command.autocomplete(interaction, { client, settings, t: (0, i18n_1.createTranslator)(settings.locale) });
+        }
+        catch (error) {
+            log.warn(`/${interaction.commandName} autocomplete xatosi:`, error);
+            await interaction.respond([]).catch(() => null);
+        }
+        return;
+    }
+    // ── Tugmalar ──────────────────────────────────────────────────────────────
     if (interaction.isButton()) {
+        if (!interaction.inCachedGuild())
+            return;
+        try {
+            for (const handle of BUTTON_HANDLERS) {
+                if (await handle(interaction))
+                    return;
+            }
+        }
+        catch (error) {
+            log.error(`Tugma xatosi (${interaction.customId}):`, error);
+            const t = (0, i18n_1.createTranslator)((0, guilds_1.getSettings)(interaction.guildId).locale);
+            const payload = { embeds: [(0, embeds_1.errorEmbed)(t('error.generic'))], flags: discord_js_1.MessageFlags.Ephemeral };
+            if (interaction.deferred || interaction.replied)
+                await interaction.followUp(payload).catch(() => null);
+            else
+                await interaction.reply(payload).catch(() => null);
+            return;
+        }
+        // Eski takliflardagi ovoz tugmalari — endi reaksiyalar ishlatiladi.
+        if (interaction.customId.startsWith('suggest_')) {
+            const t = (0, i18n_1.createTranslator)((0, guilds_1.getSettings)(interaction.guildId).locale);
+            await interaction.reply({ content: t('suggest.legacyButton'), flags: discord_js_1.MessageFlags.Ephemeral });
+            return;
+        }
+        // ── Rol tugmalari ───────────────────────────────────────────────────────
         const roleId = (0, panel_1.roleIdFromCustomId)(interaction.customId);
-        if (!roleId || !interaction.inCachedGuild())
+        if (!roleId)
             return;
         const settings = (0, guilds_1.getSettings)(interaction.guildId);
         const t = (0, i18n_1.createTranslator)(settings.locale);

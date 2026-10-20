@@ -1,5 +1,5 @@
 # ── 1-bosqich: build ────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-slim AS builder
 
 WORKDIR /app
 COPY package*.json ./
@@ -10,7 +10,7 @@ COPY src ./src
 RUN npm run build
 
 # ── 2-bosqich: ishga tushirish ──────────────────────────────────────────────
-FROM node:20-alpine AS runner
+FROM node:22-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production

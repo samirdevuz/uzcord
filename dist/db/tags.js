@@ -5,6 +5,7 @@ exports.createTag = createTag;
 exports.updateTag = updateTag;
 exports.deleteTag = deleteTag;
 exports.incrementTagUses = incrementTagUses;
+exports.searchTagNames = searchTagNames;
 exports.listTags = listTags;
 const supabase_1 = require("./supabase");
 const logger_1 = require("../core/logger");
@@ -14,7 +15,7 @@ async function getTag(guildId, name) {
         .from('tags')
         .select('*')
         .eq('guild_id', guildId)
-        .ilike('name', name)
+        .eq('name', name.toLowerCase())
         .single();
     return data ? data : null;
 }
@@ -26,7 +27,7 @@ async function updateTag(guildId, name, patch) {
         .from('tags')
         .update({ ...patch, updated_at: new Date().toISOString() })
         .eq('guild_id', guildId)
-        .ilike('name', name);
+        .eq('name', name.toLowerCase());
     if (error) {
         log.error(`updateTag: ${error.message}`);
         return false;
@@ -38,7 +39,7 @@ async function deleteTag(guildId, name) {
         .from('tags')
         .delete({ count: 'exact' })
         .eq('guild_id', guildId)
-        .ilike('name', name);
+        .eq('name', name.toLowerCase());
     if (error) {
         log.error(`deleteTag: ${error.message}`);
         return false;
@@ -50,6 +51,19 @@ async function incrementTagUses(id) {
     if (data) {
         await supabase_1.supabase.from('tags').update({ uses: Number(data.uses) + 1 }).eq('id', id);
     }
+}
+/** Autocomplete uchun: nomi shu matndan boshlanadigan taglar. */
+async function searchTagNames(guildId, prefix, limit = 25) {
+    // LIKE maxsus belgilari (% _ \) foydalanuvchi matnida wildcard bo'lib qolmasin.
+    const safe = prefix.toLowerCase().replace(/[%_\\]/g, '');
+    const { data } = await supabase_1.supabase
+        .from('tags')
+        .select('name')
+        .eq('guild_id', guildId)
+        .like('name', `${safe}%`)
+        .order('uses', { ascending: false })
+        .limit(limit);
+    return (data ?? []).map((row) => String(row.name));
 }
 async function listTags(guildId) {
     return (0, supabase_1.unwrapList)(await supabase_1.supabase

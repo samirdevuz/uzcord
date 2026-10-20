@@ -50,9 +50,9 @@ export default async function LevelingPage({
       <PageHeader description="Faol a‘zolar xabar yozib XP to‘playdi va darajasi oshadi." title="Leveling" />
       <StatusBanner message={msg} status={status} />
 
-      <Notice tone="warn">
-        Leveling moduli hali botda ishlamaydi. Sozlamalarni oldindan saqlab qo‘yishingiz mumkin — modul
-        chiqqanda ular avtomatik qo‘llanadi.
+      <Notice tone="info">
+        Sozlamalar botga 1 daqiqa ichida yetadi. Daraja mukofotlari (rollar) Discord’da sozlanadi:{' '}
+        <code>/level reward-add</code>.
       </Notice>
 
       <form action={saveLevelSettings.bind(null, guildId)}>

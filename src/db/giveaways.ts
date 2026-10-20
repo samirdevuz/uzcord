@@ -34,9 +34,9 @@ export async function getGiveawayByMessage(messageId: string): Promise<Giveaway 
     .from('giveaways')
     .select('*')
     .eq('message_id', messageId)
-    .single();
+    .maybeSingle();
 
-  return data ? (data as Giveaway) : null;
+  return data ? ({ ...data, winners: Array.isArray(data.winners) ? data.winners : [] } as Giveaway) : null;
 }
 
 export async function getDueGiveaways(): Promise<Giveaway[]> {
@@ -74,6 +74,51 @@ export async function getGiveawayEntries(giveawayId: number): Promise<string[]> 
   ) as { user_id: string }[];
 
   return rows.map((r) => r.user_id);
+}
+
+export async function removeGiveawayEntry(giveawayId: number, userId: string): Promise<boolean> {
+  const { error, count } = await supabase
+    .from('giveaway_entries')
+    .delete({ count: 'exact' })
+    .eq('giveaway_id', giveawayId)
+    .eq('user_id', userId);
+  if (error) {
+    log.error(`removeGiveawayEntry: ${error.message}`);
+    return false;
+  }
+  return (count ?? 0) > 0;
+}
+
+export async function countGiveawayEntries(giveawayId: number): Promise<number> {
+  const { count, error } = await supabase
+    .from('giveaway_entries')
+    .select('user_id', { count: 'exact', head: true })
+    .eq('giveaway_id', giveawayId);
+  if (error) {
+    log.error(`countGiveawayEntries: ${error.message}`);
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/** Faqat hali yakunlanmagan konkursni yakunlaydi — ikki marta yakunlanishdan himoya. */
+export async function claimGiveawayEnd(id: number): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('giveaways')
+    .update({ ended: true })
+    .eq('id', id)
+    .eq('ended', false)
+    .select('id');
+  if (error) {
+    log.error(`claimGiveawayEnd: ${error.message}`);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
+}
+
+export async function setGiveawayWinners(id: number, winners: string[]): Promise<void> {
+  const { error } = await supabase.from('giveaways').update({ winners }).eq('id', id);
+  if (error) log.error(`setGiveawayWinners: ${error.message}`);
 }
 
 export async function endGiveaway(id: number, winners: string[]): Promise<void> {

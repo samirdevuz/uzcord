@@ -1,157 +1,129 @@
-import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { EmbedBuilder, MessageFlags, PermissionFlagsBits, SlashCommandBuilder } from 'discord.js';
 import { defineCommand } from '../../core/types';
-import { createTag, deleteTag, getTag, incrementTagUses, listTags, updateTag } from '../../db/tags';
+import { createTag, deleteTag, getTag, incrementTagUses, listTags, searchTagNames, updateTag } from '../../db/tags';
+import { reply } from '../../modules/moderation/actions';
+import { COLORS, errorEmbed, successEmbed, truncate } from '../../utils/embeds';
+import { normalizeTagName } from '../../utils/validation';
 
 export default defineCommand({
+  category: 'utility',
   data: new SlashCommandBuilder()
     .setName('tag')
-    .setDescription('Maxsus server taglarini yaratish, foydalanish va boshqarish')
+    .setDescription('Server taglari — tez-tez yuboriladigan matnlar')
+    .setDMPermission(false)
     .addSubcommand((sub) =>
       sub
         .setName('use')
-        .setDescription('Tag mazmunini yuboradi')
-        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true))
+        .setDescription('Tagni yuboradi')
+        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true).setAutocomplete(true))
+        .addUserOption((opt) => opt.setName('user').setDescription('Kimga qaratilgan (eslatib o\'tiladi)'))
     )
     .addSubcommand((sub) =>
       sub
         .setName('create')
         .setDescription('Yangi tag yaratadi')
-        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true))
-        .addStringOption((opt) => opt.setName('content').setDescription('Tag matni').setRequired(true))
-        .addBooleanOption((opt) => opt.setName('embed').setDescription('Embed korinishida yuborilsinmi?'))
+        .addStringOption((opt) => opt.setName('name').setDescription('Nomi (harf, raqam, - va _)').setRequired(true).setMaxLength(32))
+        .addStringOption((opt) => opt.setName('content').setDescription('Matni').setRequired(true).setMaxLength(2000))
+        .addBooleanOption((opt) => opt.setName('embed').setDescription('Embed ko\'rinishida yuborilsinmi?'))
     )
     .addSubcommand((sub) =>
       sub
         .setName('edit')
-        .setDescription('Mavjud tagni tahrirlaydi')
-        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true))
-        .addStringOption((opt) => opt.setName('content').setDescription('Yangi matn').setRequired(true))
+        .setDescription('Tag matnini o\'zgartiradi')
+        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true).setAutocomplete(true))
+        .addStringOption((opt) => opt.setName('content').setDescription('Yangi matn').setRequired(true).setMaxLength(2000))
     )
     .addSubcommand((sub) =>
       sub
         .setName('delete')
-        .setDescription('Tagni ochiradi')
-        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true))
+        .setDescription('Tagni o\'chiradi')
+        .addStringOption((opt) => opt.setName('name').setDescription('Tag nomi').setRequired(true).setAutocomplete(true))
     )
-    .addSubcommand((sub) =>
-      sub
-        .setName('list')
-        .setDescription('Serverdagi barcha taglar royxati')
-    ),
-  category: 'utility',
+    .addSubcommand((sub) => sub.setName('list').setDescription('Barcha taglar')),
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) return;
+  async autocomplete(interaction) {
+    if (!interaction.guildId) return;
+    const focused = interaction.options.getFocused();
+    const names = await searchTagNames(interaction.guildId, focused);
+    await interaction.respond(names.map((name) => ({ name, value: name })));
+  },
 
+  async execute(interaction, ctx) {
+    const { t } = ctx;
+    const guild = interaction.guild!;
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === 'use') {
-      const name = interaction.options.getString('name', true).toLowerCase();
-      const tag = await getTag(interaction.guild.id, name);
-
-      if (!tag) {
-        await interaction.reply({ content: `\`${name}\` nomli tag topilmadi.`, ephemeral: true });
+    if (subcommand === 'list') {
+      const tags = await listTags(guild.id);
+      if (tags.length === 0) {
+        await reply(interaction, errorEmbed(t('tag.listEmpty')), true);
         return;
       }
+      const embed = new EmbedBuilder()
+        .setColor(COLORS.info)
+        .setTitle(`📌 ${t('tag.listTitle', { count: tags.length })}`)
+        .setDescription(truncate(tags.map((tag) => `\`${tag.name}\` · ${tag.uses}`).join('\n'), 4000))
+        .setFooter({ text: t('tag.listFooter') });
+      await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+      return;
+    }
 
-      await incrementTagUses(tag.id);
-
-      if (tag.as_embed) {
-        const embed = new EmbedBuilder()
-          .setTitle(`📌 ${tag.name}`)
-          .setDescription(tag.content)
-          .setColor('#3b82f6')
-          .setFooter({ text: `Ishlatildi: ${tag.uses + 1} marta` });
-
-        await interaction.reply({ embeds: [embed] });
-      } else {
-        await interaction.reply({ content: tag.content });
-      }
+    const name = normalizeTagName(interaction.options.getString('name', true));
+    if (!name) {
+      await reply(interaction, errorEmbed(t('tag.invalidName')), true);
       return;
     }
 
     if (subcommand === 'create') {
-      const name = interaction.options.getString('name', true).trim().toLowerCase();
-      const content = interaction.options.getString('content', true);
-      const asEmbed = interaction.options.getBoolean('embed') ?? false;
-
-      const existing = await getTag(interaction.guild.id, name);
-      if (existing) {
-        await interaction.reply({ content: `\`${name}\` nomli tag allaqachon mavjud.`, ephemeral: true });
+      if (await getTag(guild.id, name)) {
+        await reply(interaction, errorEmbed(t('tag.exists', { name })), true);
         return;
       }
-
       const created = await createTag({
-        guild_id: interaction.guild.id,
+        guild_id: guild.id,
         name,
-        content,
-        as_embed: asEmbed,
+        content: interaction.options.getString('content', true),
+        as_embed: interaction.options.getBoolean('embed') ?? false,
         created_by: interaction.user.id,
       });
+      await reply(interaction, created ? successEmbed(t('tag.created', { name })) : errorEmbed(t('tag.saveFailed')), true);
+      return;
+    }
 
-      if (!created) {
-        await interaction.reply({ content: "Tagni saqlab bo'lmadi.", ephemeral: true });
-        return;
+    const tag = await getTag(guild.id, name);
+    if (!tag) {
+      await reply(interaction, errorEmbed(t('tag.notFound', { name })), true);
+      return;
+    }
+
+    if (subcommand === 'use') {
+      await incrementTagUses(tag.id);
+      const target = interaction.options.getUser('user');
+      const mention = target ? `<@${target.id}>` : undefined;
+      const allowedMentions = { users: target ? [target.id] : [] };
+      if (tag.as_embed) {
+        const embed = new EmbedBuilder().setColor(COLORS.info).setTitle(`📌 ${tag.name}`).setDescription(tag.content);
+        await interaction.reply({ content: mention, embeds: [embed], allowedMentions });
+      } else {
+        await interaction.reply({ content: mention ? `${mention}\n${tag.content}` : tag.content, allowedMentions });
       }
+      return;
+    }
 
-      await interaction.reply({ content: `✅ Tag \`${name}\` yaratildi!`, ephemeral: true });
+    const canManage =
+      tag.created_by === interaction.user.id || interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild);
+    if (!canManage) {
+      await reply(interaction, errorEmbed(t('tag.noPermission')), true);
       return;
     }
 
     if (subcommand === 'edit') {
-      const name = interaction.options.getString('name', true).trim().toLowerCase();
-      const content = interaction.options.getString('content', true);
-
-      const tag = await getTag(interaction.guild.id, name);
-      if (!tag) {
-        await interaction.reply({ content: `\`${name}\` nomli tag topilmadi.`, ephemeral: true });
-        return;
-      }
-
-      if (tag.created_by !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        await interaction.reply({ content: "Faqat tag muallifi yoki administrator uni tahrirlashi mumkin.", ephemeral: true });
-        return;
-      }
-
-      await updateTag(interaction.guild.id, name, { content });
-      await interaction.reply({ content: `✅ Tag \`${name}\` yangilandi!`, ephemeral: true });
+      const ok = await updateTag(guild.id, name, { content: interaction.options.getString('content', true) });
+      await reply(interaction, ok ? successEmbed(t('tag.updated', { name })) : errorEmbed(t('tag.saveFailed')), true);
       return;
     }
 
-    if (subcommand === 'delete') {
-      const name = interaction.options.getString('name', true).trim().toLowerCase();
-      const tag = await getTag(interaction.guild.id, name);
-
-      if (!tag) {
-        await interaction.reply({ content: `\`${name}\` nomli tag topilmadi.`, ephemeral: true });
-        return;
-      }
-
-      if (tag.created_by !== interaction.user.id && !interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        await interaction.reply({ content: "Faqat tag muallifi yoki administrator uni o'chirishi mumkin.", ephemeral: true });
-        return;
-      }
-
-      await deleteTag(interaction.guild.id, name);
-      await interaction.reply({ content: `✅ Tag \`${name}\` o'chirildi!`, ephemeral: true });
-      return;
-    }
-
-    if (subcommand === 'list') {
-      const tags = await listTags(interaction.guild.id);
-      if (tags.length === 0) {
-        await interaction.reply({ content: "Serverda hali taglar yaratilmagan.", ephemeral: true });
-        return;
-      }
-
-      const names = tags.map((t) => `\`${t.name}\``).join(', ');
-      const embed = new EmbedBuilder()
-        .setTitle(`📌 ${interaction.guild.name} — Taglar (${tags.length} ta)`)
-        .setDescription(names)
-        .setColor('#3b82f6')
-        .setFooter({ text: "Ishlatish uchun: /tag use name:<nom>" });
-
-      await interaction.reply({ embeds: [embed] });
-    }
+    await deleteTag(guild.id, name);
+    await reply(interaction, successEmbed(t('tag.deleted', { name })), true);
   },
 });

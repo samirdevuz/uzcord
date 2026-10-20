@@ -17,12 +17,14 @@ export class UzCordClient extends Client {
         GatewayIntentBits.MessageContent, // privileged — automod uchun shart
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildMessageReactions, // starboard uchun
       ],
       partials: [
         Partials.Message,
         Partials.Channel,
         Partials.GuildMember,
         Partials.User,
+        Partials.Reaction, // keshda yo'q eski xabarlardagi reaksiyalar ham kelsin
       ],
       allowedMentions: { parse: ['users'], repliedUser: false },
       // Keraksiz keshlarni cheklash — xotirani tejaydi.

@@ -1,4 +1,5 @@
 import type {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   ClientEvents,
   SlashCommandBuilder,
@@ -35,6 +36,8 @@ export interface Command {
   /** Komanda ishlashi uchun botda bo'lishi shart bo'lgan ruxsatlar. */
   botPermissions?: bigint[];
   execute(interaction: ChatInputCommandInteraction, ctx: CommandContext): Promise<void>;
+  /** Variantlarni avtomatik taklif qilish (option'da setAutocomplete(true) bo'lsa). */
+  autocomplete?(interaction: AutocompleteInteraction, ctx: CommandContext): Promise<void>;
 }
 
 export function defineCommand(command: Command): Command {

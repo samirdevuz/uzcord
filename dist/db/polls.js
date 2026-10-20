@@ -4,6 +4,8 @@ exports.createPoll = createPoll;
 exports.getPollByMessage = getPollByMessage;
 exports.getDuePolls = getDuePolls;
 exports.castPollVote = castPollVote;
+exports.removePollVote = removePollVote;
+exports.claimPollEnd = claimPollEnd;
 exports.getPollVotes = getPollVotes;
 exports.endPoll = endPoll;
 const supabase_1 = require("./supabase");
@@ -17,7 +19,7 @@ async function getPollByMessage(messageId) {
         .from('polls')
         .select('*')
         .eq('message_id', messageId)
-        .single();
+        .maybeSingle();
     return data ? data : null;
 }
 async function getDuePolls() {
@@ -41,6 +43,30 @@ async function castPollVote(pollId, userId, optionKey, multi) {
         return false;
     }
     return true;
+}
+async function removePollVote(pollId, userId, optionKey) {
+    const { error } = await supabase_1.supabase
+        .from('poll_votes')
+        .delete()
+        .eq('poll_id', pollId)
+        .eq('user_id', userId)
+        .eq('option_key', optionKey);
+    if (error)
+        log.error(`removePollVote: ${error.message}`);
+}
+/** Faqat hali yakunlanmagan so'rovnomani yakunlaydi — ikki marta yakunlanmaydi. */
+async function claimPollEnd(id) {
+    const { data, error } = await supabase_1.supabase
+        .from('polls')
+        .update({ ended: true })
+        .eq('id', id)
+        .eq('ended', false)
+        .select('id');
+    if (error) {
+        log.error(`claimPollEnd: ${error.message}`);
+        return false;
+    }
+    return (data?.length ?? 0) > 0;
 }
 async function getPollVotes(pollId) {
     return (0, supabase_1.unwrapList)(await supabase_1.supabase

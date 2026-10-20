@@ -43,7 +43,7 @@ export async function getPollByMessage(messageId: string): Promise<Poll | null> 
     .from('polls')
     .select('*')
     .eq('message_id', messageId)
-    .single();
+    .maybeSingle();
 
   return data ? (data as Poll) : null;
 }
@@ -80,6 +80,31 @@ export async function castPollVote(
     return false;
   }
   return true;
+}
+
+export async function removePollVote(pollId: number, userId: string, optionKey: string): Promise<void> {
+  const { error } = await supabase
+    .from('poll_votes')
+    .delete()
+    .eq('poll_id', pollId)
+    .eq('user_id', userId)
+    .eq('option_key', optionKey);
+  if (error) log.error(`removePollVote: ${error.message}`);
+}
+
+/** Faqat hali yakunlanmagan so'rovnomani yakunlaydi — ikki marta yakunlanmaydi. */
+export async function claimPollEnd(id: number): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('polls')
+    .update({ ended: true })
+    .eq('id', id)
+    .eq('ended', false)
+    .select('id');
+  if (error) {
+    log.error(`claimPollEnd: ${error.message}`);
+    return false;
+  }
+  return (data?.length ?? 0) > 0;
 }
 
 export async function getPollVotes(pollId: number): Promise<PollVote[]> {

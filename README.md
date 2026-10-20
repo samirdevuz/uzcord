@@ -95,7 +95,7 @@ eng ko'pi bilan 1 daqiqada yetadi (`CACHE_REFRESH_MS` bilan sozlanadi).
 
 | Nima | Versiya | Izoh |
 |---|---|---|
-| Node.js | 20 yoki undan yuqori | Majburiy |
+| Node.js | 22.12 yoki undan yuqori | Majburiy (ovoz kutubxonasi talabi) |
 | Supabase akkaunt | free reja yetarli | Majburiy |
 | Git | ixtiyoriy | Kodni yuklab olish uchun qulay |
 
@@ -114,16 +114,16 @@ node -v
 npm -v
 ```
 
-`v20.11.0` kabi raqam chiqsa — hammasi joyida.
+`v22.12.0` yoki yuqoriroq raqam chiqsa — hammasi joyida.
 
 ### macOS / Linux
 
 ```bash
 # macOS
-brew install node@20
+brew install node@22
 
 # Ubuntu / Debian
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
@@ -410,6 +410,26 @@ saqlab qo'ying.
 | `/config escalation count action duration` | Avtomatik jazo qoidasi |
 | `/automod ...` | AutoMod sozlamalari |
 | `/buttonrole panel · add · remove` | Tugmali rollar |
+| `/ticket panel · setup · status` | Murojaat tizimi: panel, kategoriya, support rollari, transcript kanali |
+| `/ticket close · add · remove` | Murojaat kanali ichida: yopish (transcript bilan), a'zo qo'shish/chiqarish |
+| `/level enable · settings · announce · reward-add · reward-remove · status` | Leveling: XP miqdori, e'lonlar, mukofot rollari |
+| `/starboard setup · enable · ignore · status` | Starboard: kanal, emoji, chegara |
+
+### 🎉 Jamoa
+
+| Komanda | Vazifasi |
+|---|---|
+| `/giveaway create · end · reroll` | Konkurs: tugma orqali qatnashish, avtomatik yakunlanish, qayta tanlash |
+| `/poll question option1…option5 duration multi` | So'rovnoma: jonli natijalar, avtomatik yakunlanish |
+| `/rank` · `/leaderboard` | Daraja kartasi va reyting |
+| `/remind set · list · cancel` | Eslatma (kanalda yoki shaxsiy xabarda), qayta ishga tushganda ham yo'qolmaydi |
+| `/tag use · create · edit · delete · list` | Tez yuboriladigan matnlar (nom avtomatik taklif qilinadi) |
+| `/suggest text` | Taklif: 👍/👎 ovoz va muhokama thread'i (`#takliflar` kanali bo'lsa o'sha yerga) |
+| `/quote message` | Xabar havolasidan chiroyli iqtibos |
+| `/afk reason` | AFK holati |
+| `/music play · pause · resume · skip · stop · queue · nowplaying · volume · loop · shuffle · leave` | To'g'ridan-to'g'ri audio havolalar va internet-radio (YouTube/Spotify yo'q) |
+
+Vaqtinchalik ovozli kanallar: nomida `join-to-create` yoki `voice-yaratish` bo'lgan kanalga kirgan a'zoga shaxsiy kanal ochiladi va bo'shaganda o'chiriladi.
 
 ### 🧰 Foydali
 

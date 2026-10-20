@@ -1,54 +1,58 @@
-import {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  ChatInputCommandInteraction,
-} from 'discord.js';
+import { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder, type GuildMember } from 'discord.js';
 import { defineCommand } from '../../core/types';
+import { reply } from '../../modules/moderation/actions';
+import { COLORS, errorEmbed, truncate } from '../../utils/embeds';
+import { parseMessageReference } from '../../utils/validation';
 
 export default defineCommand({
+  category: 'utility',
   data: new SlashCommandBuilder()
     .setName('quote')
-    .setDescription('Discord xabaridan iqtibos (quote) keltiradi')
+    .setDescription('Xabardan chiroyli iqtibos keltiradi')
+    .setDMPermission(false)
     .addStringOption((opt) =>
-      opt.setName('message_id').setDescription('Iqtibos olinadigan xabar IDsi').setRequired(true)
+      opt.setName('message').setDescription('Xabar havolasi (Copy Message Link) yoki shu kanaldagi xabar IDsi').setRequired(true)
     ),
-  category: 'utility',
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild || !interaction.channel) return;
+  async execute(interaction, ctx) {
+    const { t } = ctx;
+    const guild = interaction.guild!;
+    const ref = parseMessageReference(interaction.options.getString('message', true));
+    if (!ref) {
+      await reply(interaction, errorEmbed(t('quote.notFound')), true);
+      return;
+    }
 
-    const messageId = interaction.options.getString('message_id', true);
-    const targetMsg = await interaction.channel.messages.fetch(messageId).catch(() => null);
+    const channel = ref.channelId ? await guild.channels.fetch(ref.channelId).catch(() => null) : interaction.channel;
+    if (!channel?.isTextBased() || channel.isDMBased() || channel.guildId !== guild.id) {
+      await reply(interaction, errorEmbed(t('quote.notFound')), true);
+      return;
+    }
 
-    if (!targetMsg) {
-      await interaction.reply({
-        content: "Xabar ushbu kanalda topilmadi yoki botga ruxsat yetarli emas.",
-        ephemeral: true,
-      });
+    // Foydalanuvchi o'zi ko'ra olmaydigan kanaldan iqtibos keltira olmasin.
+    const member = interaction.member as GuildMember;
+    if (!channel.permissionsFor(member)?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory])) {
+      await reply(interaction, errorEmbed(t('quote.notFound')), true);
+      return;
+    }
+
+    const message = await channel.messages.fetch(ref.messageId).catch(() => null);
+    if (!message) {
+      await reply(interaction, errorEmbed(t('quote.notFound')), true);
       return;
     }
 
     const embed = new EmbedBuilder()
-      .setAuthor({
-        name: targetMsg.author.tag,
-        iconURL: targetMsg.author.displayAvatarURL(),
-      })
-      .setDescription(targetMsg.content || '*(Faqat media/birikma)*')
-      .setColor('#3b82f6')
-      .addFields({
-        name: 'Asl xabar',
-        value: `[O'tish](${targetMsg.url})`,
-      })
-      .setTimestamp(targetMsg.createdAt)
-      .setFooter({ text: `Iqtibos keltirdi: ${interaction.user.tag}` });
+      .setColor(message.member?.displayColor || COLORS.info)
+      .setAuthor({ name: message.member?.displayName ?? message.author.username, iconURL: message.author.displayAvatarURL() })
+      .setDescription(truncate(message.content || message.embeds[0]?.description || t('quote.mediaOnly'), 4000))
+      .addFields({ name: '​', value: `[${t('quote.jump')}](${message.url}) · <#${channel.id}>` })
+      .setFooter({ text: t('quote.by', { user: interaction.user.username }) })
+      .setTimestamp(message.createdAt);
 
-    if (targetMsg.attachments.size > 0) {
-      const firstAttachment = targetMsg.attachments.first();
-      if (firstAttachment?.contentType?.startsWith('image/')) {
-        embed.setImage(firstAttachment.url);
-      }
-    }
+    const image = message.attachments.find((attachment) => attachment.contentType?.startsWith('image/'));
+    if (image) embed.setImage(image.url);
 
-    await interaction.reply({ embeds: [embed] });
+    await interaction.reply({ embeds: [embed], allowedMentions: { parse: [] } });
   },
 });

@@ -1,26 +1,21 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js';
+import { SlashCommandBuilder, type GuildMember } from 'discord.js';
 import { defineCommand } from '../../core/types';
-
-// Global AFK state in memory: guildId:userId -> reason
-export const afkUsers = new Map<string, { reason: string; timestamp: number }>();
+import { setAfk } from '../../modules/afk';
 
 export default defineCommand({
+  category: 'utility',
+  cooldown: 10,
   data: new SlashCommandBuilder()
     .setName('afk')
-    .setDescription('AFK (Klaviaturadan uzoqda) holatini o\'rnatadi')
-    .addStringOption((opt) => opt.setName('reason').setDescription('Sabab')),
-  category: 'utility',
+    .setDescription('AFK holatini yoqadi — sizni eslatganlarga sabab ko\'rsatiladi')
+    .setDMPermission(false)
+    .addStringOption((opt) => opt.setName('reason').setDescription('Sabab').setMaxLength(200)),
 
-  async execute(interaction: ChatInputCommandInteraction): Promise<void> {
-    if (!interaction.guild) return;
-
-    const reason = interaction.options.getString('reason') ?? 'Sabab ko\'rsatilmadi';
-    const key = `${interaction.guild.id}:${interaction.user.id}`;
-
-    afkUsers.set(key, { reason, timestamp: Date.now() });
-
-    await interaction.reply({
-      content: `💤 **${interaction.user.username}** endi AFK: *${reason}*`,
-    });
+  async execute(interaction, ctx) {
+    const { t } = ctx;
+    const member = interaction.member as GuildMember;
+    const reason = interaction.options.getString('reason') ?? t('afk.noReason');
+    await setAfk(member, reason);
+    await interaction.reply({ content: t('afk.set', { user: member.displayName, reason }), allowedMentions: { parse: [] } });
   },
 });

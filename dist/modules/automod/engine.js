@@ -204,26 +204,26 @@ async function punish(message, member, automod, verdict, t) {
         }
     }
 }
-/** Har bir yangi xabar shu funksiyadan o'tadi. */
+/** Har bir yangi xabar shu funksiyadan o'tadi. Xabar qoidani buzgan bo'lsa `true`. */
 async function inspectMessage(message) {
     if (!message.inGuild())
-        return;
+        return false;
     if (message.author.bot || message.system)
-        return;
+        return false;
     const member = message.member;
     if (!member)
-        return;
+        return false;
     const settings = (0, guilds_1.getSettings)(message.guildId);
     if (!(0, guilds_1.isModuleEnabled)(settings, 'automod'))
-        return;
+        return false;
     const automod = (0, automod_1.getAutoMod)(message.guildId);
     if (!automod.enabled)
-        return;
+        return false;
     if (isExempt(member, message, automod))
-        return;
+        return false;
     const verdict = checkRules(message, member, automod);
     if (!verdict)
-        return;
+        return false;
     const t = (0, i18n_1.createTranslator)(settings.locale);
     try {
         if (message.deletable)
@@ -259,6 +259,7 @@ async function inspectMessage(message) {
         value: (0, embeds_1.truncate)(message.content || t('log.empty')),
     })
         .setTimestamp());
+    return true;
 }
 /**
  * Yangi a'zo qo'shilganda chaqiriladi: reyd kuzatuvi va akkaunt yoshi tekshiruvi.
